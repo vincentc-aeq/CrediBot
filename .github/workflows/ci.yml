@@ -1,0 +1,381 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Backend Tests
+  backend-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: credibot_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+    
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        npm ci
+    
+    - name: Setup test environment
+      run: |
+        cd backend
+        cp .env.example .env.test
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credibot_test" >> .env.test
+        echo "REDIS_URL=redis://localhost:6379" >> .env.test
+        echo "NODE_ENV=test" >> .env.test
+    
+    - name: Run database migrations
+      run: |
+        cd backend
+        npm run migrate
+    
+    - name: Run backend tests
+      run: |
+        cd backend
+        npm run test -- --coverage --watchAll=false
+    
+    - name: Run security tests
+      run: |
+        cd backend
+        npm run test:security
+    
+    - name: Run integration tests
+      run: |
+        cd backend
+        npm run test:integration
+    
+    - name: Upload backend coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage/lcov.info
+        flags: backend
+        name: backend-coverage
+
+  # Frontend Tests
+  frontend-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Run frontend tests
+      run: |
+        cd frontend
+        npm run test -- --coverage --watchAll=false
+    
+    - name: Run component tests
+      run: |
+        cd frontend
+        npm run test:component
+    
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+    
+    - name: Upload frontend coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+
+  # E2E Tests
+  e2e-test:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: credibot_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        cd backend && npm ci
+        cd ../frontend && npm ci
+    
+    - name: Setup test environment
+      run: |
+        cd backend
+        cp .env.example .env.test
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credibot_test" >> .env.test
+        echo "REDIS_URL=redis://localhost:6379" >> .env.test
+        echo "NODE_ENV=test" >> .env.test
+    
+    - name: Run database migrations
+      run: |
+        cd backend
+        npm run migrate
+    
+    - name: Start backend server
+      run: |
+        cd backend
+        npm start &
+        sleep 10
+    
+    - name: Start frontend server
+      run: |
+        cd frontend
+        npm start &
+        sleep 15
+    
+    - name: Run E2E tests
+      run: |
+        cd frontend
+        npm run test:e2e
+    
+    - name: Upload E2E test artifacts
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: cypress-screenshots
+        path: frontend/cypress/screenshots
+    
+    - name: Upload E2E test videos
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: cypress-videos
+        path: frontend/cypress/videos
+
+  # Performance Tests
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        cd backend && npm ci
+        npm install -g artillery
+    
+    - name: Start backend server
+      run: |
+        cd backend
+        npm start &
+        sleep 10
+    
+    - name: Run performance tests
+      run: |
+        cd backend
+        npm run test:performance
+    
+    - name: Upload performance report
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-report
+        path: backend/performance-report.json
+
+  # Security Scan
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+    
+    - name: Run npm audit
+      run: |
+        cd backend && npm audit --audit-level high
+        cd ../frontend && npm audit --audit-level high
+
+  # Code Quality
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        cd backend && npm ci
+        cd ../frontend && npm ci
+    
+    - name: Run ESLint
+      run: |
+        cd backend && npm run lint
+        cd ../frontend && npm run lint
+    
+    - name: Run TypeScript checks
+      run: |
+        cd backend && npm run type-check
+        cd ../frontend && npm run type-check
+    
+    - name: Run Prettier checks
+      run: |
+        cd backend && npm run format:check
+        cd ../frontend && npm run format:check
+
+  # Build and Deploy (only on main branch)
+  build-deploy:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test, e2e-test, security-scan, code-quality]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        cd backend && npm ci
+        cd ../frontend && npm ci
+    
+    - name: Build backend
+      run: |
+        cd backend
+        npm run build
+    
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+    
+    - name: Build Docker images
+      run: |
+        docker build -t credibot-backend ./backend
+        docker build -t credibot-frontend ./frontend
+    
+    - name: Run smoke tests
+      run: |
+        docker-compose -f docker-compose.test.yml up -d
+        sleep 30
+        curl -f http://localhost:3001/health
+        curl -f http://localhost:3000
+        docker-compose -f docker-compose.test.yml down
+    
+    # Deploy to staging/production would go here
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add actual deployment commands here
+    
+    - name: Run post-deployment tests
+      run: |
+        echo "Running post-deployment tests..."
+        # Add post-deployment verification tests here
+
+  # Notification
+  notify:
+    runs-on: ubuntu-latest
+    needs: [build-deploy]
+    if: always()
+    
+    steps:
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "🎉 Pipeline completed successfully!"
+        # Add notification logic (Slack, email, etc.)
+    
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Pipeline failed!"
+        # Add notification logic (Slack, email, etc.)
