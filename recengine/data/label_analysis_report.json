@@ -1,0 +1,117 @@
+{
+  "analysis": {
+    "total_samples": 10000,
+    "label_counts": {
+      "0": 5383,
+      "1": 4617
+    },
+    "label_percentages": {
+      "0": 53.83,
+      "1": 46.17
+    },
+    "category_breakdown": {
+      "gas": {
+        "total": 1026,
+        "positive": 632
+      },
+      "entertainment": {
+        "total": 960,
+        "positive": 351
+      },
+      "streaming": {
+        "total": 1031,
+        "positive": 358
+      },
+      "utilities": {
+        "total": 984,
+        "positive": 341
+      },
+      "travel": {
+        "total": 957,
+        "positive": 575
+      },
+      "online_shopping": {
+        "total": 984,
+        "positive": 349
+      },
+      "groceries": {
+        "total": 1007,
+        "positive": 649
+      },
+      "other": {
+        "total": 1028,
+        "positive": 365
+      },
+      "dining": {
+        "total": 976,
+        "positive": 622
+      },
+      "healthcare": {
+        "total": 1047,
+        "positive": 375
+      }
+    },
+    "amount_ranges": {
+      "$200+": {
+        "total": 6091,
+        "positive": 3429
+      },
+      "$25-50": {
+        "total": 520,
+        "positive": 103
+      },
+      "$100-200": {
+        "total": 2022,
+        "positive": 882
+      },
+      "$50-100": {
+        "total": 1048,
+        "positive": 146
+      },
+      "$0-25": {
+        "total": 319,
+        "positive": 57
+      }
+    },
+    "reward_gap_ranges": {
+      "25%+": {
+        "total": 4531,
+        "positive": 2424
+      },
+      "0-1%": {
+        "total": 5469,
+        "positive": 2193
+      }
+    },
+    "statistics": {
+      "amount_stats": {
+        "min": 10.03,
+        "max": 499.99,
+        "avg": 254.90623300000001,
+        "positive_avg": 302.2249924193199
+      },
+      "reward_gap_stats": {
+        "min": -33.333333333333336,
+        "max": 100.0,
+        "avg": 23.700000000000003,
+        "positive_avg": 30.077250740018776
+      },
+      "extra_reward_stats": {
+        "min": -0.04982,
+        "max": 0.09999400000000001,
+        "avg": 0.021124437450000002
+      }
+    }
+  },
+  "validation": {
+    "total_samples": 10000,
+    "validation_errors": [],
+    "warnings": [],
+    "quality_metrics": {
+      "class_balance": 0.4617,
+      "data_completeness": 1.0,
+      "label_consistency": 1.0
+    }
+  },
+  "generation_timestamp": "2024-07-19T00:00:00"
+}
