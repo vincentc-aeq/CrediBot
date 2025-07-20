@@ -27,6 +27,7 @@ class CardReward:
     annual_fee: float
     net_benefit: float
     point_value_cents: float
+    reward_type: str
 
 
 @dataclass
@@ -105,7 +106,11 @@ class RewardCalculator:
         applicable_rate = bonus_rate if bonus_rate > base_rate else base_rate
         
         # Calculate raw reward
-        reward_points = amount * (applicable_rate / 100)
+        # applicable_rate is already in points per dollar, not percentage
+        if card["reward_type"] in ["points", "miles"]:
+            reward_points = amount * applicable_rate  # e.g. $1000 * 2 points/$ = 2000 points
+        else:  # cashback
+            reward_points = amount * (applicable_rate / 100)  # e.g. $1000 * 2% = $20
         
         # Apply caps if applicable
         bonus_cap = card["bonus_cap_amt"]
@@ -136,7 +141,8 @@ class RewardCalculator:
             reward_amount=reward_amount,
             annual_fee=card["annual_fee"],
             net_benefit=net_benefit,
-            point_value_cents=card["point_value_cent"]
+            point_value_cents=card["point_value_cent"],
+            reward_type=card["reward_type"]
         )
     
     def analyze_transaction(
@@ -153,8 +159,10 @@ class RewardCalculator:
             reward = self.calculate_reward_amount(card, amount, category)
             all_rewards.append(reward)
         
-        # Sort by net benefit (descending)
-        all_rewards.sort(key=lambda x: x.net_benefit, reverse=True)
+        # Sort by reward amount (descending) for transaction analysis
+        # Note: Using reward_amount instead of net_benefit for single transaction comparison
+        # Net benefit is better for long-term portfolio analysis
+        all_rewards.sort(key=lambda x: x.reward_amount, reverse=True)
         
         # Find best card
         best_reward = all_rewards[0]
@@ -166,18 +174,28 @@ class RewardCalculator:
             current_rewards = [r for r in all_rewards if r.card_id == current_card_id]
             current_reward = current_rewards[0] if current_rewards else None
         
-        # Calculate gap metrics
+        # Calculate gap metrics based on pure reward amounts (before annual fee impact)
         if current_reward:
-            current_reward_amt = current_reward.reward_amount
-            reward_gap_pct = ((best_reward.reward_amount - current_reward_amt) / current_reward_amt * 100) if current_reward_amt > 0 else 0
-            extra_reward_amt = best_reward.reward_amount - current_reward_amt
+            # Calculate pure reward amounts without annual fee impact
+            if current_reward.reward_type in ["points", "miles"]:
+                current_pure_reward = amount * current_reward.applicable_rate * (current_reward.point_value_cents / 100)
+            else:
+                current_pure_reward = amount * (current_reward.applicable_rate / 100)
+                
+            if best_reward.reward_type in ["points", "miles"]:
+                best_pure_reward = amount * best_reward.applicable_rate * (best_reward.point_value_cents / 100)  
+            else:
+                best_pure_reward = amount * (best_reward.applicable_rate / 100)
+            
+            reward_gap_pct = ((best_pure_reward - current_pure_reward) / current_pure_reward * 100) if current_pure_reward > 0 else 0
+            extra_reward_amt = best_pure_reward - current_pure_reward
         else:
             reward_gap_pct = 0
             extra_reward_amt = best_reward.reward_amount
         
-        # Count better cards
+        # Count better cards (using reward_amount for consistency)
         if current_reward:
-            num_better_cards = len([r for r in all_rewards if r.net_benefit > current_reward.net_benefit])
+            num_better_cards = len([r for r in all_rewards if r.reward_amount > current_reward.reward_amount])
         else:
             num_better_cards = len(all_rewards)
         

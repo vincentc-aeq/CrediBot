@@ -64,6 +64,8 @@ ChartJS.register(
   ArcElement
 );
 
+import { RecentTransactions } from '../components/analytics/RecentTransactions';
+
 // Mock API functions (replace with actual API calls)
 const dashboardApi = {
   getCardPerformance: async () => {
@@ -596,6 +598,9 @@ const DashboardPage = () => {
           </Box>
         </CardContent>
       </Card>
+
+      {/* Recent Transactions */}
+      <RecentTransactions />
 
       {/* Optimization Recommendations */}
       <Card>

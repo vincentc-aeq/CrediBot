@@ -1,0 +1,34 @@
+HTTP/1.1 500 Internal Server Error
+Content-Security-Policy-Report-Only: default-src 'self';script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com https://production.plaid.com https://sandbox.plaid.com https://cdn.jsdelivr.net https://unpkg.com;style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;font-src 'self' https://fonts.gstatic.com;img-src 'self' data: https: https://logo.clearbit.com;connect-src 'self' https://production.plaid.com https://sandbox.plaid.com https://api.plaid.com wss://localhost:* ws://localhost:*;frame-src 'self' https://cdn.plaid.com;object-src 'none';media-src 'self';worker-src 'self' blob:;child-src 'none';form-action 'self';frame-ancestors 'none';base-uri 'self';manifest-src 'self';script-src-attr 'none';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin-allow-popups
+Cross-Origin-Resource-Policy: cross-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: strict-origin-when-cross-origin
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: DENY
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 1; mode=block
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: X-RateLimit-Limit,X-RateLimit-Remaining,X-RateLimit-Reset,X-Request-ID
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+Expires: 0
+Server: CrediBot-API
+X-API-Version: 1.0
+Feature-Policy: geolocation 'none'; microphone 'none'; camera 'none'; payment 'self'; usb 'none'
+Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' *; img-src 'self' data: *; connect-src 'self' ws: wss: *;
+X-Request-ID: 1c50ad0d-3965-4c9d-be89-7ed2b7545e94
+RateLimit-Policy: 1000;w=900
+RateLimit-Limit: 1000
+RateLimit-Remaining: 992
+RateLimit-Reset: 774
+Content-Type: application/json; charset=utf-8
+Content-Length: 115
+ETag: W/"73-H6Nk1n9GMTAH2PNuw5o1+krSWyg"
+Date: Sun, 20 Jul 2025 22:02:23 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+

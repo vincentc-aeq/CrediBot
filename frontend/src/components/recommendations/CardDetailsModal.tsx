@@ -167,7 +167,18 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
           </Box>
         ) : error ? (
           <Alert severity="error">
-            Unable to load card details. Please try again later.
+            <Typography variant="h6" gutterBottom>
+              Failed to Load Card Details
+            </Typography>
+            <Typography variant="body2">
+              We're unable to load the details for this credit card right now. This could be due to a temporary issue with our servers.
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Card ID: {recommendation?.cardId}
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Error: {error?.message || 'Unknown error occurred'}
+            </Typography>
           </Alert>
         ) : (
           <Box>

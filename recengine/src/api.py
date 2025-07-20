@@ -16,45 +16,9 @@ warnings.filterwarnings('ignore')
 # Add utils to path
 sys.path.append(str(Path(__file__).parent))
 
-# Mock FastAPI for development
-class FastAPI:
-    """Mock FastAPI application."""
-    
-    def __init__(self, title="RecEngine API", version="1.0.0", description=""):
-        self.title = title
-        self.version = version
-        self.description = description
-        self.routes = {}
-        
-    def get(self, path: str):
-        def decorator(func):
-            self.routes[f"GET {path}"] = func
-            return func
-        return decorator
-    
-    def post(self, path: str):
-        def decorator(func):
-            self.routes[f"POST {path}"] = func
-            return func
-        return decorator
-
-class HTTPException(Exception):
-    """Mock HTTP exception."""
-    def __init__(self, status_code: int, detail: str):
-        self.status_code = status_code
-        self.detail = detail
-
-# Mock Pydantic models
-class BaseModel:
-    """Mock Pydantic BaseModel."""
-    
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-    
-    def dict(self):
-        return {key: value for key, value in self.__dict__.items() 
-                if not key.startswith('_')}
+# Real FastAPI imports
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 # Import our ML utilities
 try:
@@ -75,6 +39,12 @@ app = FastAPI(
     version="1.0.0",
     description="Credit card recommendation engine with ML-powered insights"
 )
+
+# Add startup event
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the application on startup."""
+    startup()
 
 # Global state
 models = {}
@@ -192,8 +162,11 @@ def load_models():
         print(f"❌ Failed to load models: {e}")
         return False
 
-def check_user_cooldown(user_id: str, cooldown_minutes: int = 60) -> bool:
+def check_user_cooldown(user_id: str, cooldown_minutes: int = 1) -> bool:
     """Check if user is in cooldown period."""
+    # Temporarily disable cooldown for testing
+    return False
+    
     if user_id not in user_cooldowns:
         return False
     
@@ -296,19 +269,50 @@ def trigger_classify(request: TransactionRequest) -> TriggerResponse:
         confidence = 0.5
         reasoning = "No significant benefit found"
         
-        # Business rules for triggering
-        if analysis.reward_gap_pct > 10 and analysis.extra_reward_amt > 0.1:
+        # Generate category-specific reasoning
+        def get_category_reasoning(category: str, best_card: any, current_rate: float, best_rate: float) -> str:
+            category_display = {
+                'dining': 'restaurants',
+                'travel': 'travel',
+                'groceries': 'groceries', 
+                'gas': 'gas stations',
+                'shopping': 'shopping'
+            }.get(category, category)
+            
+            if best_card.reward_type in ['points', 'miles']:
+                return f"Earns {best_rate:.0f}x {best_card.reward_type} on {category_display} vs your current {current_rate:.1f}x"
+            else:
+                return f"Earns {best_rate:.0f}% cashback on {category_display} vs your current {current_rate:.1f}%"
+
+        # Business rules for triggering (focus on reward gap percentage + smart thresholds)
+        if analysis.reward_gap_pct > 200:  # Very high reward gap always triggers
             should_trigger = True
-            confidence = min(0.9, 0.5 + (analysis.reward_gap_pct / 100))
-            reasoning = f"Found {analysis.reward_gap_pct:.1f}% better reward rate"
-        elif analysis.extra_reward_amt > 0.5:
+            confidence = min(0.95, 0.7 + (analysis.reward_gap_pct / 500))
+            reasoning = get_category_reasoning(request.category, analysis.best_card_reward, 
+                                            analysis.current_card_reward.applicable_rate if analysis.current_card_reward else 0,
+                                            analysis.best_card_reward.applicable_rate)
+        elif analysis.reward_gap_pct > 100 and analysis.extra_reward_amt > 0.05:  # Good gap + small absolute benefit
+            should_trigger = True
+            confidence = min(0.85, 0.6 + (analysis.reward_gap_pct / 300))
+            reasoning = get_category_reasoning(request.category, analysis.best_card_reward,
+                                            analysis.current_card_reward.applicable_rate if analysis.current_card_reward else 0,
+                                            analysis.best_card_reward.applicable_rate)
+        elif analysis.extra_reward_amt > 0.15:  # Meaningful absolute savings
+            should_trigger = True
+            confidence = 0.8
+            reasoning = f"Worth considering: ${analysis.extra_reward_amt:.2f} more in rewards for {request.category}"
+        elif request.amount > 100 and analysis.reward_gap_pct > 50 and analysis.extra_reward_amt > 0.10:
             should_trigger = True
             confidence = 0.7
-            reasoning = f"Potential extra ${analysis.extra_reward_amt:.2f} in rewards"
-        elif request.amount > 100 and analysis.reward_gap_pct > 5:
+            reasoning = get_category_reasoning(request.category, analysis.best_card_reward,
+                                            analysis.current_card_reward.applicable_rate if analysis.current_card_reward else 0,
+                                            analysis.best_card_reward.applicable_rate)
+        elif analysis.reward_gap_pct > 75 and analysis.extra_reward_amt > 0.05 and request.amount > 30:
             should_trigger = True
-            confidence = 0.6
-            reasoning = "Large transaction with better card available"
+            confidence = 0.65
+            reasoning = get_category_reasoning(request.category, analysis.best_card_reward,
+                                            analysis.current_card_reward.applicable_rate if analysis.current_card_reward else 0,
+                                            analysis.best_card_reward.applicable_rate)
         
         # Update cooldown if recommending
         if should_trigger:

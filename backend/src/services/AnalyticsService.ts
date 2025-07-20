@@ -1057,6 +1057,239 @@ export class AnalyticsService {
     
     return lastTwo[1].totalAmount + growth;
   }
+
+  /**
+   * Get recent transactions with card recommendations using RecEngine
+   */
+  async getRecentTransactionsWithRecommendations(userId: string, limit: number = 20, offset: number = 0) {
+    try {
+      // Get recent transactions with card and reward information
+      const transactions = await this.analyticsRepository.getRecentTransactionsWithDetails(userId, limit, offset);
+      
+      // For each transaction, call trigger classifier to check for better options
+      const enhancedTransactions = await Promise.all(
+        transactions.map(async (transaction) => {
+          try {
+            // Call trigger classifier
+            const triggerResponse = await this.callTriggerClassifier(transaction);
+            
+            // If trigger suggests better card exists, get recommendation
+            let betterCardRecommendation = null;
+            if (triggerResponse.recommend_flag && triggerResponse.suggested_card_id) {
+              betterCardRecommendation = {
+                cardName: this.getCardDisplayName(triggerResponse.suggested_card_id),
+                issuer: this.getCardIssuer(triggerResponse.suggested_card_id),
+                additionalReward: triggerResponse.extra_reward || 0,
+                rewardDifference: `+$${(triggerResponse.extra_reward || 0).toFixed(2)}`,
+                reason: triggerResponse.reasoning || 'Better card available',
+                applyUrl: `#apply-${triggerResponse.suggested_card_id}`
+              };
+            }
+
+            return {
+              ...transaction,
+              betterCardRecommendation,
+              triggerResult: {
+                recommend_flag: triggerResponse.recommend_flag || false,
+                confidence_score: triggerResponse.confidence_score || 0,
+                reasoning: triggerResponse.reasoning || 'No better option found'
+              }
+            };
+          } catch (error) {
+            console.error(`Error processing transaction ${transaction.id}:`, error);
+            return {
+              ...transaction,
+              betterCardRecommendation: null,
+              triggerResult: { 
+                recommend_flag: false, 
+                confidence_score: 0,
+                reasoning: 'Error analyzing transaction'
+              }
+            };
+          }
+        })
+      );
+
+      return enhancedTransactions;
+    } catch (error) {
+      console.error('Error in getRecentTransactionsWithRecommendations:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Map UUID card IDs to RecEngine card IDs
+   */
+  private getCardUuidToRecEngineIdMapping(): Record<string, string> {
+    return {
+      // Database UUID -> RecEngine card_id mapping
+      '550e8400-e29b-41d4-a716-446655440001': 'chase_sapphire_preferred',
+      '550e8400-e29b-41d4-a716-446655440002': 'citi_double_cash_card',
+      '550e8400-e29b-41d4-a716-446655440003': 'american_express_gold_card',
+      '550e8400-e29b-41d4-a716-446655440004': 'discover_it_cash_back',
+      '550e8400-e29b-41d4-a716-446655440005': 'capital_one_venture_rewards',
+      '550e8400-e29b-41d4-a716-446655440006': 'chase_freedom_unlimited',
+      '550e8400-e29b-41d4-a716-446655440007': 'blue_cash_preferred_card',
+      '550e8400-e29b-41d4-a716-446655440008': 'wells_fargo_active_cash_card',
+      '550e8400-e29b-41d4-a716-446655440009': 'chase_sapphire_reserve',
+      '550e8400-e29b-41d4-a716-446655440010': 'capital_one_quicksilver',
+      '550e8400-e29b-41d4-a716-446655440011': 'chase_ink_business_preferred',
+      '550e8400-e29b-41d4-a716-446655440012': 'discover_it_student_cash_back',
+    };
+  }
+
+  /**
+   * Call RecEngine trigger classifier for a transaction
+   */
+  private async callTriggerClassifier(transaction: any) {
+    try {
+      const recEngineUrl = process.env.RECENGINE_URL || 'http://localhost:8080';
+      
+      // Map UUID to RecEngine card ID
+      const cardUuidToRecEngineId = this.getCardUuidToRecEngineIdMapping();
+      const cardUsed = transaction.card_used || transaction.cardUsed;
+      const recEngineCardId = cardUuidToRecEngineId[cardUsed] || cardUsed;
+      
+      console.log(`DEBUG: Original card_used: ${cardUsed}, Mapped to: ${recEngineCardId}`);
+      
+      const requestData = {
+        user_id: transaction.user_id || transaction.userId,
+        amount: parseFloat(transaction.amount),
+        category: transaction.category,
+        current_card_id: recEngineCardId,
+        merchant: transaction.merchant
+      };
+      
+      console.log('Sending to RecEngine trigger-classify:', JSON.stringify(requestData, null, 2));
+      
+      const response = await fetch(`${recEngineUrl}/trigger-classify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`RecEngine trigger classifier failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('RecEngine trigger-classify response:', JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      console.error('Error calling trigger classifier:', error);
+      return { 
+        recommend_flag: false, 
+        confidence_score: 0,
+        suggested_card_id: '',
+        extra_reward: 0.0,
+        reasoning: 'Error calling RecEngine'
+      };
+    }
+  }
+
+  /**
+   * Get card display name from RecEngine card ID
+   */
+  private getCardDisplayName(recEngineCardId: string): string {
+    const cardNames: Record<string, string> = {
+      'american_express_gold_card': 'American Express Gold Card',
+      'chase_sapphire_preferred': 'Chase Sapphire Preferred',
+      'chase_sapphire_reserve': 'Chase Sapphire Reserve',
+      'citi_double_cash_card': 'Citi Double Cash Card',
+      'discover_it_cash_back': 'Discover it Cash Back',
+      'capital_one_venture_rewards': 'Capital One Venture Rewards',
+      'chase_freedom_unlimited': 'Chase Freedom Unlimited',
+      'blue_cash_preferred_card': 'Blue Cash Preferred Card',
+      'wells_fargo_active_cash_card': 'Wells Fargo Active Cash Card',
+      'capital_one_quicksilver': 'Capital One Quicksilver',
+      'chase_ink_business_preferred': 'Chase Ink Business Preferred',
+      'discover_it_student_cash_back': 'Discover it Student Cash Back'
+    };
+    return cardNames[recEngineCardId] || recEngineCardId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
+   * Get card issuer from RecEngine card ID
+   */
+  private getCardIssuer(recEngineCardId: string): string {
+    const cardIssuers: Record<string, string> = {
+      'american_express_gold_card': 'American Express',
+      'chase_sapphire_preferred': 'Chase',
+      'chase_sapphire_reserve': 'Chase',
+      'citi_double_cash_card': 'Citi',
+      'discover_it_cash_back': 'Discover',
+      'capital_one_venture_rewards': 'Capital One',
+      'chase_freedom_unlimited': 'Chase',
+      'blue_cash_preferred_card': 'American Express',
+      'wells_fargo_active_cash_card': 'Wells Fargo',
+      'capital_one_quicksilver': 'Capital One',
+      'chase_ink_business_preferred': 'Chase',
+      'discover_it_student_cash_back': 'Discover'
+    };
+    return cardIssuers[recEngineCardId] || 'Unknown';
+  }
+
+  /**
+   * Get better card recommendation for a transaction
+   */
+  private async getBetterCardRecommendation(transaction: any) {
+    try {
+      // Get available cards for this category
+      const availableCards = await creditCardRepository.findByCategory(transaction.category);
+      
+      // Find best card for this category (simplified logic)
+      const bestCard = availableCards.find(card => 
+        this.calculateRewardRate(card, transaction.category) > 
+        this.calculateRewardRate(transaction.cardDetails, transaction.category)
+      );
+
+      if (bestCard) {
+        const currentReward = this.calculateRewardEarned(transaction.amount, transaction.cardDetails, transaction.category);
+        const betterReward = this.calculateRewardEarned(transaction.amount, bestCard, transaction.category);
+        const additionalReward = betterReward - currentReward;
+
+        return {
+          cardId: bestCard.id,
+          cardName: bestCard.card_name,
+          issuer: bestCard.issuer,
+          currentReward,
+          betterReward,
+          additionalReward,
+          rewardDifference: ((betterReward - currentReward) / currentReward * 100).toFixed(1),
+          reason: `Better ${transaction.category} rewards`,
+          applyUrl: `https://creditcards.com/apply/${bestCard.id}` // Mock URL
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error getting better card recommendation:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Calculate reward rate for a card and category
+   */
+  private calculateRewardRate(card: any, category: string): number {
+    try {
+      const rewardStructure = JSON.parse(card.reward_structure || '[]');
+      const categoryReward = rewardStructure.find((r: any) => r.category === category);
+      return categoryReward ? categoryReward.rewardRate : 1.0;
+    } catch {
+      return 1.0;
+    }
+  }
+
+  /**
+   * Calculate reward earned for a transaction
+   */
+  private calculateRewardEarned(amount: number, card: any, category: string): number {
+    const rate = this.calculateRewardRate(card, category);
+    return amount * rate;
+  }
 }
 
 export const analyticsService = new AnalyticsService();

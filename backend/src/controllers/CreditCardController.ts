@@ -49,7 +49,7 @@ export class CreditCardController {
       const endIndex = startIndex + Number(limit);
       const paginatedCards = cards.slice(startIndex, endIndex);
 
-      res.json(successResponse('Credit cards retrieved successfully', {
+      successResponse(res, {
         cards: paginatedCards,
         pagination: {
           page: Number(page),
@@ -57,10 +57,10 @@ export class CreditCardController {
           total: cards.length,
           pages: Math.ceil(cards.length / Number(limit))
         }
-      }));
+      });
     } catch (error) {
       console.error('Error getting credit cards:', error);
-      res.status(500).json(errorResponse('Failed to get credit cards'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get credit cards', 500);
     }
   }
 
@@ -74,14 +74,44 @@ export class CreditCardController {
       const card = await creditCardRepository.findById(cardId);
       
       if (!card) {
-        res.status(404).json(errorResponse('Credit card not found'));
+        errorResponse(res, 'NOT_FOUND', 'Credit card not found', 404);
         return;
       }
 
-      res.json(successResponse('Credit card retrieved successfully', { card }));
+      // Transform data to match frontend expectations
+      const transformedCard = {
+        ...card,
+        rewardCategories: card.rewardStructure?.map(reward => ({
+          category: reward.category,
+          rate: reward.rewardRate,
+          description: `${reward.rewardRate}% ${reward.rewardType} on ${reward.category} purchases`
+        })) || [],
+        interestRate: 18.99, // Default interest rate
+        creditLimit: 10000, // Default credit limit
+        requirements: {
+          ...card.requirements,
+          description: `Minimum credit score of ${card.requirements?.minCreditScore || 650} and annual income of $${(card.requirements?.minIncome || 40000).toLocaleString()}`
+        },
+        terms: [
+          "Terms and conditions apply",
+          "APR varies based on creditworthiness",
+          "Balance transfers may incur fees",
+          "Over-limit fees may apply",
+          "Late payment fees apply for missed payments"
+        ],
+        promotions: [
+          {
+            title: "Welcome Bonus",
+            description: "Earn bonus rewards after spending threshold in first 3 months",
+            expiryDate: "Limited time offer"
+          }
+        ]
+      };
+
+      successResponse(res, { card: transformedCard });
     } catch (error) {
       console.error('Error getting credit card:', error);
-      res.status(500).json(errorResponse('Failed to get credit card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get credit card', 500);
     }
   }
 
@@ -94,10 +124,10 @@ export class CreditCardController {
       
       const cards = await creditCardRepository.findByCardType(cardType as CardType);
       
-      res.json(successResponse('Credit cards retrieved successfully', { cards }));
+      successResponse(res, { cards });
     } catch (error) {
       console.error('Error getting cards by type:', error);
-      res.status(500).json(errorResponse('Failed to get cards by type'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get cards by type', 500);
     }
   }
 
@@ -110,10 +140,10 @@ export class CreditCardController {
       
       const cards = await creditCardRepository.findByIssuer(issuer);
       
-      res.json(successResponse('Credit cards retrieved successfully', { cards }));
+      successResponse(res, { cards });
     } catch (error) {
       console.error('Error getting cards by issuer:', error);
-      res.status(500).json(errorResponse('Failed to get cards by issuer'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get cards by issuer', 500);
     }
   }
 
@@ -124,10 +154,10 @@ export class CreditCardController {
     try {
       const cards = await creditCardRepository.findCardsWithNoAnnualFee();
       
-      res.json(successResponse('No annual fee cards retrieved successfully', { cards }));
+      successResponse(res, { cards });
     } catch (error) {
       console.error('Error getting no annual fee cards:', error);
-      res.status(500).json(errorResponse('Failed to get no annual fee cards'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get no annual fee cards', 500);
     }
   }
 
@@ -140,10 +170,10 @@ export class CreditCardController {
       
       const userCards = await userCardRepository.findUserCardsWithDetails(userId);
       
-      res.json(successResponse('User cards retrieved successfully', { userCards }));
+      successResponse(res, { userCards });
     } catch (error) {
       console.error('Error getting user cards:', error);
-      res.status(500).json(errorResponse('Failed to get user cards'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get user cards', 500);
     }
   }
 
@@ -166,21 +196,21 @@ export class CreditCardController {
       } = req.body;
 
       if (!creditCardId) {
-        res.status(400).json(errorResponse('Credit card ID is required'));
+        errorResponse(res, 'VALIDATION_ERROR', 'Credit card ID is required', 400);
         return;
       }
 
       // Check if credit card exists
       const creditCard = await creditCardRepository.findById(creditCardId);
       if (!creditCard) {
-        res.status(404).json(errorResponse('Credit card not found'));
+        errorResponse(res, 'NOT_FOUND', 'Credit card not found', 404);
         return;
       }
 
       // Check if user already has this card
       const hasCard = await userCardRepository.hasCard(userId, creditCardId);
       if (hasCard) {
-        res.status(400).json(errorResponse('User already has this credit card'));
+        errorResponse(res, 'CONFLICT', 'User already has this credit card', 409);
         return;
       }
 
@@ -202,10 +232,10 @@ export class CreditCardController {
         notes,
       });
 
-      res.status(201).json(successResponse('Credit card added successfully', { userCard }));
+      successResponse(res, { userCard }, 201);
     } catch (error) {
       console.error('Error adding user card:', error);
-      res.status(500).json(errorResponse('Failed to add credit card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to add credit card', 500);
     }
   }
 
@@ -221,7 +251,7 @@ export class CreditCardController {
       // Verify card ownership
       const userCard = await userCardRepository.findById(cardId);
       if (!userCard || userCard.userId !== userId) {
-        res.status(404).json(errorResponse('User card not found'));
+        errorResponse(res, 'NOT_FOUND', 'User card not found', 404);
         return;
       }
 
@@ -232,10 +262,10 @@ export class CreditCardController {
 
       const updatedCard = await userCardRepository.updateUserCard(cardId, updateData);
       
-      res.json(successResponse('User card updated successfully', { userCard: updatedCard }));
+      successResponse(res, { userCard: updatedCard });
     } catch (error) {
       console.error('Error updating user card:', error);
-      res.status(500).json(errorResponse('Failed to update user card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to update user card', 500);
     }
   }
 
@@ -250,20 +280,20 @@ export class CreditCardController {
       // Verify card ownership
       const userCard = await userCardRepository.findById(cardId);
       if (!userCard || userCard.userId !== userId) {
-        res.status(404).json(errorResponse('User card not found'));
+        errorResponse(res, 'NOT_FOUND', 'User card not found', 404);
         return;
       }
 
       const deleted = await userCardRepository.delete(cardId);
       
       if (deleted) {
-        res.json(successResponse('User card removed successfully'));
+        successResponse(res, { message: 'User card removed successfully' });
       } else {
-        res.status(404).json(errorResponse('User card not found'));
+        errorResponse(res, 'NOT_FOUND', 'User card not found', 404);
       }
     } catch (error) {
       console.error('Error removing user card:', error);
-      res.status(500).json(errorResponse('Failed to remove user card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to remove user card', 500);
     }
   }
 
@@ -278,20 +308,20 @@ export class CreditCardController {
       // Verify card ownership
       const userCard = await userCardRepository.findById(cardId);
       if (!userCard || userCard.userId !== userId) {
-        res.status(404).json(errorResponse('User card not found'));
+        errorResponse(res, 'NOT_FOUND', 'User card not found', 404);
         return;
       }
 
       const success = await userCardRepository.setPrimaryCard(userId, cardId);
       
       if (success) {
-        res.json(successResponse('Primary card set successfully'));
+        successResponse(res, { message: 'Primary card set successfully' });
       } else {
-        res.status(400).json(errorResponse('Failed to set primary card'));
+        errorResponse(res, 'INTERNAL_ERROR', 'Failed to set primary card', 400);
       }
     } catch (error) {
       console.error('Error setting primary card:', error);
-      res.status(500).json(errorResponse('Failed to set primary card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to set primary card', 500);
     }
   }
 
@@ -305,23 +335,23 @@ export class CreditCardController {
       const { currentBalance } = req.body;
 
       if (currentBalance === undefined) {
-        res.status(400).json(errorResponse('Current balance is required'));
+        errorResponse(res, 'VALIDATION_ERROR', 'Current balance is required', 400);
         return;
       }
 
       // Verify card ownership
       const userCard = await userCardRepository.findById(cardId);
       if (!userCard || userCard.userId !== userId) {
-        res.status(404).json(errorResponse('User card not found'));
+        errorResponse(res, 'NOT_FOUND', 'User card not found', 404);
         return;
       }
 
       const updatedCard = await userCardRepository.updateBalance(cardId, currentBalance);
       
-      res.json(successResponse('Card balance updated successfully', { userCard: updatedCard }));
+      successResponse(res, { userCard: updatedCard });
     } catch (error) {
       console.error('Error updating card balance:', error);
-      res.status(500).json(errorResponse('Failed to update card balance'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to update card balance', 500);
     }
   }
 
@@ -334,10 +364,10 @@ export class CreditCardController {
       
       const portfolio = await userCardRepository.getUserCardPortfolio(userId);
       
-      res.json(successResponse('User card portfolio retrieved successfully', { portfolio }));
+      successResponse(res, { portfolio });
     } catch (error) {
       console.error('Error getting user card portfolio:', error);
-      res.status(500).json(errorResponse('Failed to get user card portfolio'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get user card portfolio', 500);
     }
   }
 
@@ -350,10 +380,10 @@ export class CreditCardController {
       
       const stats = await userCardRepository.getUserCardStats(userId);
       
-      res.json(successResponse('User card statistics retrieved successfully', { stats }));
+      successResponse(res, { stats });
     } catch (error) {
       console.error('Error getting user card stats:', error);
-      res.status(500).json(errorResponse('Failed to get user card statistics'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get user card statistics', 500);
     }
   }
 
@@ -366,7 +396,7 @@ export class CreditCardController {
       const { updates } = req.body;
 
       if (!updates || !Array.isArray(updates)) {
-        res.status(400).json(errorResponse('Updates array is required'));
+        errorResponse(res, 'VALIDATION_ERROR', 'Updates array is required', 400);
         return;
       }
 
@@ -374,17 +404,17 @@ export class CreditCardController {
       for (const update of updates) {
         const userCard = await userCardRepository.findById(update.cardId);
         if (!userCard || userCard.userId !== userId) {
-          res.status(404).json(errorResponse(`User card ${update.cardId} not found`));
+          errorResponse(res, 'NOT_FOUND', `User card ${update.cardId} not found`, 404);
           return;
         }
       }
 
       const updatedCount = await userCardRepository.batchUpdateBalances(updates);
       
-      res.json(successResponse('Card balances updated successfully', { updatedCount }));
+      successResponse(res, { updatedCount });
     } catch (error) {
       console.error('Error batch updating card balances:', error);
-      res.status(500).json(errorResponse('Failed to update card balances'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to update card balances', 500);
     }
   }
 
@@ -399,10 +429,10 @@ export class CreditCardController {
       
       const card = await creditCardRepository.create(cardData);
       
-      res.status(201).json(successResponse('Credit card created successfully', { card }));
+      successResponse(res, { card }, 201);
     } catch (error) {
       console.error('Error creating credit card:', error);
-      res.status(500).json(errorResponse('Failed to create credit card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to create credit card', 500);
     }
   }
 
@@ -417,13 +447,13 @@ export class CreditCardController {
       const updatedCard = await creditCardRepository.update(cardId, updateData);
       
       if (updatedCard) {
-        res.json(successResponse('Credit card updated successfully', { card: updatedCard }));
+        successResponse(res, { card: updatedCard });
       } else {
-        res.status(404).json(errorResponse('Credit card not found'));
+        errorResponse(res, 'NOT_FOUND', 'Credit card not found', 404);
       }
     } catch (error) {
       console.error('Error updating credit card:', error);
-      res.status(500).json(errorResponse('Failed to update credit card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to update credit card', 500);
     }
   }
 
@@ -437,13 +467,13 @@ export class CreditCardController {
       const deleted = await creditCardRepository.delete(cardId);
       
       if (deleted) {
-        res.json(successResponse('Credit card deleted successfully'));
+        successResponse(res, { message: 'Credit card deleted successfully' });
       } else {
-        res.status(404).json(errorResponse('Credit card not found'));
+        errorResponse(res, 'NOT_FOUND', 'Credit card not found', 404);
       }
     } catch (error) {
       console.error('Error deleting credit card:', error);
-      res.status(500).json(errorResponse('Failed to delete credit card'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to delete credit card', 500);
     }
   }
 
@@ -470,15 +500,15 @@ export class CreditCardController {
         return acc;
       }, {} as Record<string, number>);
 
-      res.json(successResponse('Card statistics retrieved successfully', {
+      successResponse(res, {
         totalCards,
         activeCards: activeCards.length,
         cardsByType,
         cardsByIssuer,
-      }));
+      });
     } catch (error) {
       console.error('Error getting card statistics:', error);
-      res.status(500).json(errorResponse('Failed to get card statistics'));
+      errorResponse(res, 'INTERNAL_ERROR', 'Failed to get card statistics', 500);
     }
   }
 }

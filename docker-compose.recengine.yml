@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # RecEngine ML Service
+  recengine:
+    build:
+      context: ./recengine
+      dockerfile: Dockerfile
+    container_name: credibot-recengine
+    ports:
+      - "8000:8080"
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - ./recengine/data:/app/data:ro
+      - ./recengine/models:/app/models:ro
+    networks:
+      - credibot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # MLflow Server (Optional - for production ML model management)
+  mlflow:
+    image: python:3.11-slim
+    container_name: credibot-mlflow
+    command: >
+      sh -c "pip install mlflow==2.8.1 && 
+             mlflow server --host 0.0.0.0 --port 5000 
+             --backend-store-uri sqlite:///mlflow.db 
+             --default-artifact-root /mlflow/artifacts"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    networks:
+      - credibot-network
+    restart: unless-stopped
+
+  # Backend with RecEngine integration
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: credibot-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=postgresql://credibot:password@postgres:5432/credibot
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key}
+      - RECENGINE_URL=http://recengine:8080
+      - RECENGINE_CACHE_ENABLED=true
+    depends_on:
+      - postgres
+      - redis
+      - recengine
+    networks:
+      - credibot-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: credibot-postgres
+    environment:
+      - POSTGRES_USER=credibot
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=credibot
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+    networks:
+      - credibot-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: credibot-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - credibot-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: credibot-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001/api
+      - REACT_APP_RECENGINE_ENABLED=true
+    depends_on:
+      - backend
+    networks:
+      - credibot-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (Optional - for production)
+  nginx:
+    image: nginx:alpine
+    container_name: credibot-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+      - recengine
+    networks:
+      - credibot-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  mlflow-data:
+
+networks:
+  credibot-network:
+    driver: bridge

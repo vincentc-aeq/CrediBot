@@ -123,7 +123,7 @@ export class RecEngineClient {
   }
 
   /**
-   * 個人化排序器 - 首頁推薦排序
+   * Personalized Ranker - Homepage recommendation ranking
    */
   async personalizedRanking(request: PersonalizedRankerRequest): Promise<PersonalizedRankerResponse> {
     try {
@@ -288,7 +288,7 @@ export class RecEngineClientFactory {
 
 // 預設配置
 export const defaultRecEngineConfig: RecEngineConfig = {
-  baseUrl: process.env.RECENGINE_BASE_URL || 'http://localhost:8080/api/v1',
+  baseUrl: process.env.RECENGINE_BASE_URL || 'http://localhost:8080',
   apiKey: process.env.RECENGINE_API_KEY || '',
   timeout: parseInt(process.env.RECENGINE_TIMEOUT || '30000'),
   retryAttempts: parseInt(process.env.RECENGINE_RETRY_ATTEMPTS || '3'),

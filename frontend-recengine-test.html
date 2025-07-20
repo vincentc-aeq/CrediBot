@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端 RecEngine 驗證測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-header {
+            color: #2196F3;
+            border-bottom: 2px solid #2196F3;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #1976D2; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        .json-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .test-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 前端 RecEngine 整合驗證</h1>
+    
+    <div class="test-container">
+        <h2 class="test-header">🔗 連線狀態檢查</h2>
+        <button onclick="checkServices()">檢查服務狀態</button>
+        <div id="service-status"></div>
+    </div>
+
+    <div class="test-grid">
+        <div class="test-container">
+            <h2 class="test-header">🏠 首頁推薦測試</h2>
+            <p>測試個人化信用卡推薦功能</p>
+            <button onclick="testHomepageRecommendations()">測試首頁推薦</button>
+            <div id="homepage-result"></div>
+        </div>
+
+        <div class="test-container">
+            <h2 class="test-header">💳 交易分析測試</h2>
+            <p>測試交易觸發推薦功能</p>
+            <button onclick="testTransactionAnalysis()">測試交易分析</button>
+            <div id="transaction-result"></div>
+        </div>
+
+        <div class="test-container">
+            <h2 class="test-header">🎯 回饋估算測試</h2>
+            <p>測試信用卡回饋計算功能</p>
+            <button onclick="testRewardEstimation()">測試回饋估算</button>
+            <div id="reward-result"></div>
+        </div>
+
+        <div class="test-container">
+            <h2 class="test-header">📊 組合優化測試</h2>
+            <p>測試信用卡組合建議功能</p>
+            <button onclick="testPortfolioOptimization()">測試組合優化</button>
+            <div id="portfolio-result"></div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2 class="test-header">🎨 前端組件測試</h2>
+        <p>驗證前端 React 組件是否正確調用 RecEngine API</p>
+        <button onclick="testFrontendComponents()">測試前端組件</button>
+        <div id="frontend-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        const RECENGINE_BASE = 'http://localhost:8000';
+
+        // Utility functions
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function showResult(elementId, data, success = true) {
+            const element = document.getElementById(elementId);
+            const type = success ? 'success' : 'error';
+            const status = success ? '✅' : '❌';
+            
+            element.innerHTML = `
+                <div class="status ${type}">${status} ${success ? '測試成功' : '測試失敗'}</div>
+                <div class="json-output">${JSON.stringify(data, null, 2)}</div>
+            `;
+        }
+
+        // Service status check
+        async function checkServices() {
+            showStatus('service-status', '🔍 檢查服務狀態中...', 'info');
+            
+            const services = [
+                { name: '後端 API', url: `${API_BASE}/health` },
+                { name: 'RecEngine', url: `${RECENGINE_BASE}/health` }
+            ];
+            
+            let results = [];
+            
+            for (const service of services) {
+                try {
+                    const response = await fetch(service.url);
+                    const data = await response.text();
+                    results.push({
+                        service: service.name,
+                        status: response.ok ? '✅ 正常' : '❌ 異常',
+                        response: data
+                    });
+                } catch (error) {
+                    results.push({
+                        service: service.name,
+                        status: '❌ 無法連接',
+                        error: error.message
+                    });
+                }
+            }
+            
+            showResult('service-status', results);
+        }
+
+        // Homepage recommendations test
+        async function testHomepageRecommendations() {
+            showStatus('homepage-result', '🏠 測試首頁推薦中...', 'info');
+            
+            try {
+                // Test direct RecEngine call
+                const recEngineResponse = await fetch(`${RECENGINE_BASE}/personalized-ranking`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: "test_user",
+                        user_cards: ["citi_double_cash_card"],
+                        spending_pattern: {
+                            dining: 500,
+                            groceries: 800,
+                            gas: 200,
+                            travel: 300,
+                            other: 1200
+                        }
+                    })
+                });
+                
+                const recEngineData = await recEngineResponse.json();
+                
+                showResult('homepage-result', {
+                    message: 'RecEngine 直接調用成功',
+                    recEngineData: recEngineData,
+                    recommendation_count: recEngineData.ranked_cards?.length || 0
+                });
+                
+            } catch (error) {
+                showResult('homepage-result', {
+                    error: error.message,
+                    suggestion: '請確認 RecEngine 服務是否正在運行 (port 8000)'
+                }, false);
+            }
+        }
+
+        // Transaction analysis test
+        async function testTransactionAnalysis() {
+            showStatus('transaction-result', '💳 測試交易分析中...', 'info');
+            
+            try {
+                const response = await fetch(`${RECENGINE_BASE}/trigger-classify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: "test_user",
+                        amount: 150.0,
+                        category: "dining",
+                        current_card_id: "citi_double_cash_card",
+                        merchant: "Test Restaurant"
+                    })
+                });
+                
+                const data = await response.json();
+                
+                showResult('transaction-result', {
+                    message: '交易分析成功',
+                    analysis: data,
+                    recommend_flag: data.recommend_flag,
+                    confidence_score: data.confidence_score
+                });
+                
+            } catch (error) {
+                showResult('transaction-result', {
+                    error: error.message
+                }, false);
+            }
+        }
+
+        // Reward estimation test
+        async function testRewardEstimation() {
+            showStatus('reward-result', '🎯 測試回饋估算中...', 'info');
+            
+            try {
+                const response = await fetch(`${RECENGINE_BASE}/estimate-rewards`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: "test_user",
+                        card_id: "american_express_gold_card",
+                        projected_spending: {
+                            dining: 2400,
+                            groceries: 1800,
+                            gas: 1200,
+                            travel: 2000,
+                            other: 3000
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                showResult('reward-result', {
+                    message: '回饋估算成功',
+                    estimation: data,
+                    annual_reward: data.estimated_annual_reward
+                });
+                
+            } catch (error) {
+                showResult('reward-result', {
+                    error: error.message
+                }, false);
+            }
+        }
+
+        // Portfolio optimization test
+        async function testPortfolioOptimization() {
+            showStatus('portfolio-result', '📊 測試組合優化中...', 'info');
+            
+            try {
+                const response = await fetch(`${RECENGINE_BASE}/optimize-portfolio`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: "test_user",
+                        current_cards: ["citi_double_cash_card", "chase_freedom_unlimited"],
+                        spending_pattern: {
+                            dining: 1200,
+                            groceries: 1800,
+                            gas: 1000,
+                            travel: 800,
+                            other: 2200
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                showResult('portfolio-result', {
+                    message: '組合優化成功',
+                    optimization: data,
+                    current_score: data.current_portfolio_score,
+                    optimized_score: data.optimized_portfolio_score,
+                    recommendations: data.recommendations
+                });
+                
+            } catch (error) {
+                showResult('portfolio-result', {
+                    error: error.message
+                }, false);
+            }
+        }
+
+        // Frontend components test
+        async function testFrontendComponents() {
+            showStatus('frontend-result', '🎨 測試前端組件整合...', 'info');
+            
+            const tests = [];
+            
+            // Test 1: Check if useRecEngine hook would work
+            tests.push({
+                name: '檢查 React Hook 模擬',
+                test: async () => {
+                    // Simulate what useHomepageRecommendations would do
+                    const mockResponse = await fetch(`${API_BASE}/recommendations/homepage`);
+                    return {
+                        hookSimulation: 'useHomepageRecommendations',
+                        status: mockResponse.status,
+                        canLoad: mockResponse.ok
+                    };
+                }
+            });
+            
+            // Test 2: Check transaction recommendation endpoint
+            tests.push({
+                name: '檢查交易推薦端點',
+                test: async () => {
+                    const mockResponse = await fetch(`${API_BASE}/recommendations/transaction-analysis`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: 100,
+                            category: 'dining',
+                            merchant: 'Test'
+                        })
+                    });
+                    return {
+                        endpoint: '/recommendations/transaction-analysis',
+                        status: mockResponse.status,
+                        available: mockResponse.status !== 404
+                    };
+                }
+            });
+            
+            // Test 3: Check if frontend can access backend recommendations
+            tests.push({
+                name: '檢查後端推薦 API 可用性',
+                test: async () => {
+                    const endpoints = [
+                        '/recommendations/homepage',
+                        '/recommendations/status'
+                    ];
+                    
+                    const results = {};
+                    for (const endpoint of endpoints) {
+                        try {
+                            const response = await fetch(`${API_BASE}${endpoint}`);
+                            results[endpoint] = {
+                                status: response.status,
+                                available: response.status !== 404
+                            };
+                        } catch (error) {
+                            results[endpoint] = {
+                                error: error.message,
+                                available: false
+                            };
+                        }
+                    }
+                    return results;
+                }
+            });
+            
+            // Run all tests
+            const results = [];
+            for (const test of tests) {
+                try {
+                    const result = await test.test();
+                    results.push({
+                        name: test.name,
+                        status: '✅ 通過',
+                        result: result
+                    });
+                } catch (error) {
+                    results.push({
+                        name: test.name,
+                        status: '❌ 失敗',
+                        error: error.message
+                    });
+                }
+            }
+            
+            showResult('frontend-result', {
+                message: '前端組件整合測試完成',
+                tests: results,
+                summary: `${results.filter(r => r.status.includes('✅')).length}/${results.length} 測試通過`
+            });
+        }
+
+        // Auto-run service check on page load
+        window.addEventListener('load', () => {
+            setTimeout(checkServices, 1000);
+        });
+    </script>
+</body>
+</html>

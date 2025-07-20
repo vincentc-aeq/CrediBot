@@ -165,7 +165,21 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
 
   // Empty state - use fallback component
   if (!recommendations.length) {
-    return null; // Let parent component handle empty state
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography variant="h5" component="h2" gutterBottom color="text.secondary">
+            No Recommendations Available
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            We don't have enough information to provide personalized credit card recommendations at this time.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please complete your profile setup or connect your bank account to receive personalized recommendations.
+          </Typography>
+        </Box>
+      </Container>
+    );
   }
 
   const visibleRecommendations = recommendations.slice(currentIndex, currentIndex + cardsPerView);

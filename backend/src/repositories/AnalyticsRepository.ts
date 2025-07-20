@@ -426,4 +426,42 @@ export class AnalyticsRepository extends BaseRepository<AnalyticsCache> {
 
     return dbRow;
   }
+
+  /**
+   * Get recent transactions with card details and reward information
+   */
+  async getRecentTransactionsWithDetails(userId: string, limit: number = 20, offset: number = 0) {
+    try {
+      const query = `
+        SELECT 
+          t.id,
+          t.user_id,
+          t.amount,
+          t.category,
+          t.merchant,
+          t.description,
+          t.transaction_date,
+          t.card_used,
+          t.rewards_earned,
+          t.metadata,
+          cc.id as card_id,
+          cc.name as card_name,
+          cc.issuer,
+          cc.card_type,
+          cc.reward_structure
+        FROM transactions t
+        LEFT JOIN credit_cards cc ON t.card_used = cc.id
+        WHERE t.user_id = ?
+        ORDER BY t.transaction_date DESC
+        LIMIT ? OFFSET ?
+      `;
+
+      const transactions = await db.raw(query, [userId, limit, offset]);
+      
+      return transactions.rows || transactions; // Handle different SQL drivers
+    } catch (error) {
+      console.error('Error getting recent transactions with details:', error);
+      throw error;
+    }
+  }
 }

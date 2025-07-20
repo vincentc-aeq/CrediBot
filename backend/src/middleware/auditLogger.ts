@@ -1,18 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuditService } from '../services/AuditService';
 import { ResponseUtils } from '../utils/response';
+import { randomUUID } from 'crypto';
 
 export interface AuditLogEntry {
-  userId?: number;
+  entityType: string;
+  entityId: string;
   action: string;
-  resource: string;
-  resourceId?: string;
-  details?: Record<string, any>;
-  ipAddress: string;
-  userAgent?: string;
-  success: boolean;
-  timestamp: Date;
-  requestId?: string;
+  userId?: string;
+  description?: string;
+  metadata?: Record<string, any>;
+  oldValues?: any;
+  newValues?: any;
+  changes?: string[];
 }
 
 export interface AuditableAction {
@@ -40,17 +40,34 @@ export class AuditLogger {
     additionalDetails?: Record<string, any>
   ) {
     try {
-      const auditEntry: AuditLogEntry = {
-        userId: req.user?.id,
+      // Generate a valid UUID for entity_id if none exists
+      let entityId = req.params.id || additionalDetails?.resourceId;
+      if (!entityId) {
+        if (req.user?.id) {
+          entityId = req.user.id.toString();
+        } else {
+          // Generate a unique UUID for anonymous/system actions
+          entityId = randomUUID();
+        }
+      }
+
+      const auditEntry = {
+        entityType: auditableAction.resource,
+        entityId: entityId,
         action: auditableAction.action,
-        resource: auditableAction.resource,
-        resourceId: req.params.id || additionalDetails?.resourceId,
-        details: this.buildAuditDetails(req, res, auditableAction, additionalDetails),
-        ipAddress: this.getClientIP(req),
-        userAgent: req.headers['user-agent'],
-        success,
-        timestamp: new Date(),
-        requestId: req.headers['x-request-id'] as string
+        userId: req.user?.id?.toString(),
+        description: `${auditableAction.action} on ${auditableAction.resource}`,
+        metadata: {
+          method: req.method,
+          path: req.path,
+          query: req.query,
+          statusCode: res.statusCode,
+          success,
+          ipAddress: this.getClientIP(req),
+          userAgent: req.headers['user-agent'],
+          requestId: req.headers['x-request-id'] as string,
+          ...additionalDetails
+        }
       };
 
       await this.auditService.log(auditEntry);

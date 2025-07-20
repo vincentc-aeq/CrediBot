@@ -186,8 +186,8 @@ export class HomepageRecommendationService {
     } catch (error) {
       console.error('Error getting dynamic homepage content:', error);
       return {
-        primaryMessage: '歡迎回來！',
-        secondaryMessage: '發現適合您的信用卡推薦',
+        primaryMessage: 'Welcome back!',
+        secondaryMessage: 'Discover credit card recommendations for you',
         urgentRecommendations: [],
         timeBasedRecommendations: []
       };
@@ -326,13 +326,13 @@ export class HomepageRecommendationService {
       cardId: card.id,
       cardName: card.name,
       score: 0.7,
-      reasoning: '市場熱門選擇',
+      reasoning: 'Popular market choice',
       estimatedBenefit: 300,
       confidence: 0.6,
       priority: 'medium' as const,
-      ctaText: '查看詳情',
-      messageTitle: '熱門推薦',
-      messageDescription: `${card.name} 是目前市場上的熱門選擇`,
+      ctaText: 'View Details',
+      messageTitle: 'Popular Recommendation',
+      messageDescription: `${card.name} is currently a popular choice in the market`,
       tags: ['trending', 'popular']
     }));
   }
@@ -414,8 +414,8 @@ export class HomepageRecommendationService {
       estimatedBenefit: this.calculateEstimatedBenefit(rec, context),
       confidence: rec.personalizedScore,
       priority: this.determinePriority(rec.personalizedScore),
-      ctaText: rec.ctaText || '查看詳情',
-      messageTitle: rec.messageTitle || '推薦給您',
+      ctaText: rec.ctaText || 'View Details',
+      messageTitle: rec.messageTitle || 'Recommended for You',
       messageDescription: rec.messageDescription || rec.reasoning,
       tags: this.generateTags(rec, context)
     };
@@ -534,10 +534,25 @@ export class HomepageRecommendationService {
   }
 
   private generateTags(rec: any, context: PersonalizationContext): string[] {
-    const tags = ['homepage'];
+    const tags = [];
     
-    if (rec.personalizedScore > 0.8) tags.push('high_match');
+    // Add meaningful tags based on card properties
+    if (rec.cardName.toLowerCase().includes('travel')) tags.push('travel');
+    if (rec.cardName.toLowerCase().includes('cash')) tags.push('cashback');
+    if (rec.cardName.toLowerCase().includes('dining')) tags.push('dining');
+    if (rec.cardName.toLowerCase().includes('gold')) tags.push('premium');
+    if (rec.cardName.toLowerCase().includes('preferred')) tags.push('rewards');
+    
+    // Add score-based tags
+    if (rec.personalizedScore > 0.8) tags.push('top_match');
+    else if (rec.personalizedScore > 0.6) tags.push('good_match');
+    else tags.push('potential_match');
+    
     if (context.userSegment === 'new_user') tags.push('beginner_friendly');
+    if (context.spendingPersona === 'aggressive') tags.push('premium');
+    
+    // Ensure we always have at least one tag
+    if (tags.length === 0) tags.push('recommended');
     
     return tags;
   }
@@ -548,7 +563,7 @@ export class HomepageRecommendationService {
   }
 
   private generateHeroHighlight(item: RecommendationItem, context: PersonalizationContext): string {
-    return `為您量身推薦 - 預估年度收益 $${item.estimatedBenefit}`;
+    return `Personalized recommendation - Estimated annual benefit $${item.estimatedBenefit}`;
   }
 
   private selectCtaStyle(context: PersonalizationContext): 'primary' | 'secondary' | 'accent' {
@@ -557,10 +572,10 @@ export class HomepageRecommendationService {
 
   private getCategoryDisplayName(category: string): string {
     const names: Record<string, string> = {
-      dining: '餐飲優惠',
-      travel: '旅遊回饋',
-      cashback: '現金回饋',
-      gas: '加油優惠'
+      dining: 'Dining Rewards',
+      travel: 'Travel Rewards',
+      cashback: 'Cash Back',
+      gas: 'Gas Rewards'
     };
     return names[category] || category;
   }
@@ -581,19 +596,19 @@ export class HomepageRecommendationService {
       hero: {
         card: {
           cardId: 'fallback',
-          cardName: '基本推薦',
+          cardName: 'Basic Recommendation',
           score: 0.5,
-          reasoning: '系統維護中',
+          reasoning: 'System maintenance in progress',
           estimatedBenefit: 200,
           confidence: 0.3,
           priority: 'medium',
-          ctaText: '了解更多',
-          messageTitle: '推薦信用卡',
-          messageDescription: '基本推薦方案',
+          ctaText: 'Learn More',
+          messageTitle: 'Recommended Credit Card',
+          messageDescription: 'Basic recommendation plan',
           tags: ['fallback']
         },
         backgroundImage: '/images/hero-bg-default.jpg',
-        highlight: '系統維護中，為您提供基本推薦',
+        highlight: 'System maintenance in progress, providing basic recommendations',
         ctaStyle: 'secondary'
       },
       featured: [],
@@ -651,8 +666,8 @@ export class HomepageRecommendationService {
     timeContext: any
   ): { primary: string; secondary: string } {
     return {
-      primary: `歡迎回來！`,
-      secondary: '為您找到了更好的信用卡選擇'
+      primary: `Welcome back!`,
+      secondary: 'Found better credit card options for you'
     };
   }
 }

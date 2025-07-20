@@ -328,7 +328,8 @@ export class AuditLogRepository extends BaseRepository<AuditLog> {
       ipAddress: auditLog.ip_address,
       userAgent: auditLog.user_agent,
       description: auditLog.description,
-      metadata: auditLog.metadata ? JSON.parse(auditLog.metadata) : null,
+      metadata: auditLog.metadata ? 
+        (typeof auditLog.metadata === 'string' ? JSON.parse(auditLog.metadata) : auditLog.metadata) : null,
       createdAt: auditLog.created_at,
       updatedAt: auditLog.updated_at,
     };

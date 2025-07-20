@@ -23,6 +23,8 @@ router.get('/homepage', rateLimiter.generalLimiter, async (req, res) => {
     const maxResults = parseInt(req.query.maxResults as string) || 6;
     const enablePersonalization = req.query.enablePersonalization !== 'false';
 
+    console.log('Homepage recommendations request:', { userId, maxResults, enablePersonalization });
+
     const request: RecommendationRequest = {
       userId,
       type: RecommendationType.HOMEPAGE,
@@ -37,7 +39,8 @@ router.get('/homepage', rateLimiter.generalLimiter, async (req, res) => {
     return successResponse(res, recommendations, 'Homepage recommendations retrieved successfully');
   } catch (error) {
     console.error('Error getting homepage recommendations:', error);
-    return errorResponse(res, 'RECOMMENDATION_ERROR', 'Failed to get homepage recommendations', 500);
+    console.error('Error stack:', error.stack);
+    return errorResponse(res, 'RECOMMENDATION_ERROR', `Failed to get homepage recommendations: ${error.message}`, 500);
   }
 });
 

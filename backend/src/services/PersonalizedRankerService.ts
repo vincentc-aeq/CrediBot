@@ -1,4 +1,4 @@
-import { RecEngineClientFactory, defaultRecEngineConfig } from './RecEngineClient';
+import { RecEngineClientFactory, RecEngineClient, defaultRecEngineConfig } from './RecEngineClient';
 import {
   PersonalizedRankerRequest,
   PersonalizedRankerResponse,
@@ -39,7 +39,13 @@ export interface RecommendationContext {
 }
 
 export class PersonalizedRankerService {
-  private recEngineClient = RecEngineClientFactory.getInstance(defaultRecEngineConfig);
+  private recEngineClient: RecEngineClient;
+  
+  constructor() {
+    // Reset and create new instance with updated config
+    RecEngineClientFactory.reset();
+    this.recEngineClient = RecEngineClientFactory.getInstance(defaultRecEngineConfig);
+  }
 
   /**
    * 獲取首頁個人化推薦
@@ -289,17 +295,17 @@ export class PersonalizedRankerService {
     return {
       id: userId,
       demographics: {
-        age: user.age,
-        income: user.income,
-        creditScore: user.creditScore,
-        location: user.location
+        age: 30, // Default age - could be enhanced with additional user fields
+        income: 50000, // Default income - could be enhanced with additional user fields
+        creditScore: 700, // Default credit score - could be enhanced with additional user fields
+        location: 'US' // Default location - could be enhanced with additional user fields
       },
       spendingPatterns,
       preferences: {
-        preferredCardTypes: user.preferredCardTypes || [],
-        maxAnnualFee: user.maxAnnualFee || 500,
-        prioritizedCategories: user.prioritizedCategories || [],
-        riskTolerance: user.riskTolerance || 'medium'
+        preferredCardTypes: user.preferences?.cardTypes || [],
+        maxAnnualFee: user.preferences?.maxAnnualFee || 500,
+        prioritizedCategories: [], // Could be derived from spending patterns
+        riskTolerance: 'medium' // Default risk tolerance
       }
     };
   }
