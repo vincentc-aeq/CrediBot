@@ -333,7 +333,7 @@ def trigger_classify(request: TransactionRequest) -> TriggerResponse:
 def personalized_ranking(request: RankingRequest) -> RankingResponse:
     """
     Get personalized card ranking for homepage display.
-    Returns ranked list of card recommendations.
+    Returns ranked list of card recommendations based on actual spending patterns.
     """
     
     # Validate models are loaded
@@ -346,9 +346,19 @@ def personalized_ranking(request: RankingRequest) -> RankingResponse:
         if not cards:
             raise HTTPException(status_code=503, detail="Card catalog not available")
         
-        # Mock ranking logic (in real system would use trained ranker model)
+        # Enhanced ranking logic based on real spending patterns
         user_cards = request.user_cards or []
-        spending = request.spending_pattern or {}
+        spending_pattern = request.spending_pattern or {}
+        
+        # If no spending pattern provided, use default pattern
+        if not spending_pattern:
+            spending_pattern = {
+                "dining": 600,
+                "groceries": 400, 
+                "gas": 200,
+                "travel": 150,
+                "other": 1650
+            }
         
         ranked_cards = []
         for card in cards:
@@ -356,34 +366,93 @@ def personalized_ranking(request: RankingRequest) -> RankingResponse:
             if card["card_id"] in user_cards:
                 continue
             
-            # Calculate ranking score
-            score = 0.5  # Base score
+            # Calculate expected annual rewards based on spending pattern
+            annual_reward = 0
+            category_breakdown = {}
             
-            # Reward rate contribution
+            # Get bonus categories (parse JSON if string)
+            bonus_categories = card.get("bonus_categories", {})
+            if isinstance(bonus_categories, str):
+                try:
+                    import json
+                    bonus_categories = json.loads(bonus_categories)
+                except:
+                    bonus_categories = {}
+            
             base_rate = float(card.get("base_rate_pct", 1.0))
-            score += min(base_rate * 0.1, 0.3)
             
-            # Annual fee penalty
+            # Calculate rewards for each spending category
+            for category, monthly_amount in spending_pattern.items():
+                # Get reward rate for this category
+                if category in bonus_categories:
+                    rate = float(bonus_categories[category])
+                else:
+                    rate = base_rate
+                
+                # Calculate annual reward
+                if card["reward_type"] == "cashback":
+                    # Cashback is simple percentage
+                    category_reward = monthly_amount * 12 * (rate / 100)
+                else:
+                    # Points/miles need value conversion
+                    points = monthly_amount * 12 * rate
+                    point_value = float(card.get("point_value_cent", 1.0)) / 100
+                    category_reward = points * point_value
+                
+                annual_reward += category_reward
+                category_breakdown[category] = category_reward
+            
+            # Subtract annual fee
             annual_fee = float(card.get("annual_fee", 0))
-            score -= min(annual_fee / 500 * 0.2, 0.2)
+            net_benefit = annual_reward - annual_fee
             
-            # Spending pattern match (mock)
-            total_spending = sum(spending.values()) if spending else 3000
-            if total_spending > 2000:
-                score += 0.1
+            # Calculate composite score
+            total_spending = sum(spending_pattern.values()) * 12
             
-            # Add some randomness for variety
-            import random
-            score += (random.random() - 0.5) * 0.1
+            # Base score from net benefit (normalized)
+            benefit_score = min(net_benefit / 1000, 1.0) * 0.5
+            
+            # Reward rate effectiveness
+            if total_spending > 0:
+                effectiveness = annual_reward / total_spending
+                effectiveness_score = min(effectiveness * 10, 1.0) * 0.3
+            else:
+                effectiveness_score = 0
+            
+            # Annual fee penalty (less penalty for high spenders)
+            if total_spending > 36000:  # $3k/month
+                fee_penalty = min(annual_fee / 1000, 0.1)
+            else:
+                fee_penalty = min(annual_fee / 500, 0.2)
+            
+            # Signup bonus contribution (amortized over 2 years)
+            signup_bonus = float(card.get("signup_bonus_value", 0))
+            bonus_score = min(signup_bonus / 2000, 0.2)
+            
+            # Calculate final score
+            score = benefit_score + effectiveness_score + bonus_score - fee_penalty
+            score = max(0.1, min(1.0, score))
+            
+            # Generate recommendation reason
+            if net_benefit <= 0:
+                reason = "Consider if you value the card's additional benefits"
+            else:
+                # Find top rewarding categories
+                top_categories = sorted(category_breakdown.items(), key=lambda x: x[1], reverse=True)[:2]
+                if top_categories:
+                    top_cat = top_categories[0][0].replace("_", " ").title()
+                    reason = f"Excellent rewards for your {top_cat} spending"
+                else:
+                    reason = f"Estimated annual benefit: ${net_benefit:.0f}"
             
             ranked_cards.append({
                 "card_id": card["card_id"],
                 "issuer": card.get("issuer", "Unknown"),
                 "card_name": card.get("card_id", "").replace("_", " ").title(),
-                "ranking_score": max(0.1, min(1.0, score)),
+                "ranking_score": score,
                 "annual_fee": annual_fee,
-                "signup_bonus": float(card.get("signup_bonus_value", 0)),
-                "reason": "Good fit for your spending pattern"
+                "signup_bonus": signup_bonus,
+                "reason": reason
             })
         
         # Sort by ranking score
