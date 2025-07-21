@@ -79,10 +79,10 @@ curl http://localhost:8080/health
 ### Authentication
 
 ```bash
-# Login to get access token
+# Login to get access token (IMPORTANT: Use proper JSON escaping)
 curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "john.doe@example.com", "password": "TestRecEngine123!", "rememberMe": false}'
+  -d "{\"email\": \"john.doe@example.com\", \"password\": \"TestRecEngine123!\", \"rememberMe\": false}"
 
 # Use the returned accessToken for authenticated requests
 export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."

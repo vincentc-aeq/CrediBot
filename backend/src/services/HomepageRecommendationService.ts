@@ -407,16 +407,16 @@ export class HomepageRecommendationService {
     context: PersonalizationContext
   ): RecommendationItem {
     return {
-      cardId: rec.cardId,
-      cardName: rec.cardName,
-      score: rec.personalizedScore,
-      reasoning: rec.reasoning,
+      cardId: rec.card_id || rec.cardId,
+      cardName: rec.card_name || rec.cardName,
+      score: rec.ranking_score || rec.personalizedScore,
+      reasoning: rec.reason || rec.reasoning,
       estimatedBenefit: this.calculateEstimatedBenefit(rec, context),
-      confidence: rec.personalizedScore,
-      priority: this.determinePriority(rec.personalizedScore),
+      confidence: rec.ranking_score || rec.personalizedScore,
+      priority: this.determinePriority(rec.ranking_score || rec.personalizedScore),
       ctaText: rec.ctaText || 'View Details',
       messageTitle: rec.messageTitle || 'Recommended for You',
-      messageDescription: rec.messageDescription || rec.reasoning,
+      messageDescription: rec.messageDescription || rec.reason || rec.reasoning,
       tags: this.generateTags(rec, context)
     };
   }
@@ -537,15 +537,17 @@ export class HomepageRecommendationService {
     const tags = [];
     
     // Add meaningful tags based on card properties
-    if (rec.cardName.toLowerCase().includes('travel')) tags.push('travel');
-    if (rec.cardName.toLowerCase().includes('cash')) tags.push('cashback');
-    if (rec.cardName.toLowerCase().includes('dining')) tags.push('dining');
-    if (rec.cardName.toLowerCase().includes('gold')) tags.push('premium');
-    if (rec.cardName.toLowerCase().includes('preferred')) tags.push('rewards');
+    const cardName = rec.card_name || rec.cardName || '';
+    if (cardName.toLowerCase().includes('travel')) tags.push('travel');
+    if (cardName.toLowerCase().includes('cash')) tags.push('cashback');
+    if (cardName.toLowerCase().includes('dining')) tags.push('dining');
+    if (cardName.toLowerCase().includes('gold')) tags.push('premium');
+    if (cardName.toLowerCase().includes('preferred')) tags.push('rewards');
     
     // Add score-based tags
-    if (rec.personalizedScore > 0.8) tags.push('top_match');
-    else if (rec.personalizedScore > 0.6) tags.push('good_match');
+    const score = rec.ranking_score || rec.personalizedScore || 0;
+    if (score > 0.8) tags.push('top_match');
+    else if (score > 0.6) tags.push('good_match');
     else tags.push('potential_match');
     
     if (context.userSegment === 'new_user') tags.push('beginner_friendly');

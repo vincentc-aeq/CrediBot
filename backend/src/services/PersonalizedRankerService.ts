@@ -64,12 +64,19 @@ export class PersonalizedRankerService {
       // 獲取候選信用卡
       const candidateCards = await this.getCandidateCards(userId);
       
+      // 獲取用戶當前持有的信用卡ID列表
+      const userCards = await this.getUserCardIds(userId);
+      
       // 呼叫 RecEngine Personalized Ranker
       const request: PersonalizedRankerRequest = {
-        userProfile,
-        candidateCards,
-        contextualFactors,
-        maxResults: maxResults * 2 // 獲取更多結果以便分類
+        user_id: userId,
+        user_cards: userCards,
+        spending_pattern: userProfile.spendingPatterns.categorySpending,
+        preferences: {
+          maxAnnualFee: userProfile.preferences.maxAnnualFee,
+          prioritizedCategories: userProfile.preferences.prioritizedCategories,
+          riskTolerance: userProfile.preferences.riskTolerance
+        }
       };
 
       const response = await this.recEngineClient.personalizedRanking(request);
@@ -84,10 +91,10 @@ export class PersonalizedRankerService {
         featured: categorizedRecommendations.featured,
         trending: categorizedRecommendations.trending,
         personalized: categorizedRecommendations.personalized,
-        diversityScore: response.diversity_score,
+        diversityScore: response.ranking_score,
         refreshedAt: new Date(),
         metadata: {
-          totalCandidates: response.total_candidates,
+          totalCandidates: response.ranked_cards.length,
           filtersCriteria: this.getAppliedFilters(userProfile),
           personalizationFactors: this.getPersonalizationFactors(userProfile, contextualFactors)
         }
@@ -344,6 +351,14 @@ export class PersonalizedRankerService {
   }
 
   /**
+   * 獲取用戶當前持有的信用卡ID列表
+   */
+  private async getUserCardIds(userId: string): Promise<string[]> {
+    const userCards = await userCardRepository.findUserCardsWithDetails(userId);
+    return userCards.map(uc => uc.creditCardId);
+  }
+
+  /**
    * 獲取候選信用卡
    */
   private async getCandidateCards(userId: string): Promise<CreditCard[]> {
@@ -367,22 +382,22 @@ export class PersonalizedRankerService {
     personalized: PersonalizedRecommendation[];
   } {
     // 按分數排序
-    const sorted = [...recommendations].sort((a, b) => b.personalizedScore - a.personalizedScore);
+    const sorted = [...recommendations].sort((a, b) => b.ranking_score - a.ranking_score);
 
     // 特色推薦：高分且有特殊優勢的卡片
     const featured = sorted
-      .filter(rec => rec.personalizedScore > 0.8)
+      .filter(rec => rec.ranking_score > 0.8)
       .slice(0, maxPerCategory);
 
     // 趨勢推薦：市場熱門或新推出的卡片
     const trending = sorted
-      .filter(rec => rec.reasoning.includes('trending') || rec.reasoning.includes('popular'))
+      .filter(rec => rec.reason.includes('trending') || rec.reason.includes('popular'))
       .slice(0, maxPerCategory);
 
     // 個人化推薦：剩餘的高分推薦
-    const used = new Set([...featured.map(r => r.cardId), ...trending.map(r => r.cardId)]);
+    const used = new Set([...featured.map(r => r.card_id), ...trending.map(r => r.card_id)]);
     const personalized = sorted
-      .filter(rec => !used.has(rec.cardId))
+      .filter(rec => !used.has(rec.card_id))
       .slice(0, maxPerCategory);
 
     return { featured, trending, personalized };
