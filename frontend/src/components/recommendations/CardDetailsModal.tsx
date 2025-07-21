@@ -89,7 +89,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
     queryKey: ['card-details', recommendation?.cardId],
     queryFn: async () => {
       const response = await apiClient.get(`/cards/${recommendation?.cardId}`);
-      return response.data.data;
+      return response.data.data.card;
     },
     enabled: !!recommendation?.cardId && open,
   });
@@ -182,72 +182,156 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
           </Alert>
         ) : (
           <Box>
-            {/* Recommendation summary */}
-            <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-              <CardContent>
+            {/* Hero section with card image and key info */}
+            <Card sx={{ 
+              mb: 3, 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Star sx={{ mr: 1 }} />
-                  <Typography variant="h6">
-                    {recommendation.messageTitle}
-                  </Typography>
-                  <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
-                    <Rating value={recommendation.score} readOnly precision={0.1} />
-                    <Typography variant="body2" sx={{ ml: 1 }}>
-                      {(recommendation.score * 10).toFixed(1)}
+                  <CreditCard sx={{ mr: 2, fontSize: 40 }} />
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+                      {recommendation.cardName}
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Rating value={recommendation.score * 5} readOnly precision={0.1} max={5}
+                        sx={{ 
+                          '& .MuiRating-iconFilled': { color: '#FFD700' },
+                          '& .MuiRating-iconEmpty': { color: 'rgba(255, 255, 255, 0.3)' }
+                        }} />
+                      <Typography variant="body1" fontWeight="medium">
+                        {(recommendation.score * 10).toFixed(1)}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
-                <Typography variant="body1" sx={{ mb: 2 }}>
+                
+                <Typography variant="body1" sx={{ mb: 3, opacity: 0.9 }}>
                   {recommendation.messageDescription}
                 </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <TrendingUp sx={{ mr: 1 }} />
-                      <Typography variant="body2">
-                        Estimated Annual Benefit: {formatCurrency(recommendation.estimatedBenefit)}
+                
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.15)', 
+                      p: 2, 
+                      borderRadius: 2,
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <TrendingUp sx={{ mr: 1 }} />
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          Annual Benefit
+                        </Typography>
+                      </Box>
+                      <Typography variant="h6" fontWeight="bold">
+                        {formatCurrency(recommendation.estimatedBenefit)}
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body2">
-                        Confidence: {(recommendation.confidence * 100).toFixed(0)}%
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.15)', 
+                      p: 2, 
+                      borderRadius: 2,
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                        Match Confidence
+                      </Typography>
+                      <Typography variant="h6" fontWeight="bold">
+                        {(recommendation.confidence * 100).toFixed(0)}%
                       </Typography>
                     </Box>
                   </Grid>
                 </Grid>
-                <Box sx={{ mt: 2 }}>
+                
+                <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   <Chip
-                    label={recommendation.priority}
+                    label={recommendation.priority.toUpperCase()}
                     color={getPriorityColor(recommendation.priority)}
                     size="small"
-                    sx={{ mr: 1 }}
+                    sx={{ fontWeight: 'bold' }}
                   />
-                  {recommendation.tags.map((tag, index) => (
+                  {recommendation.tags && recommendation.tags.map((tag, index) => (
                     <Chip
                       key={index}
                       label={tag}
                       variant="outlined"
                       size="small"
-                      sx={{ mr: 1, mb: 1 }}
+                      sx={{ 
+                        borderColor: 'rgba(255,255,255,0.5)',
+                        color: 'white',
+                        '&:hover': { borderColor: 'white' }
+                      }}
                     />
                   ))}
                 </Box>
               </CardContent>
+              
+              {/* Decorative background elements */}
+              <Box sx={{
+                position: 'absolute',
+                top: -50,
+                right: -50,
+                width: 150,
+                height: 150,
+                borderRadius: '50%',
+                bgcolor: 'rgba(255,255,255,0.1)',
+                zIndex: 0
+              }} />
+              <Box sx={{
+                position: 'absolute',
+                bottom: -30,
+                left: -30,
+                width: 100,
+                height: 100,
+                borderRadius: '50%',
+                bgcolor: 'rgba(255,255,255,0.05)',
+                zIndex: 0
+              }} />
             </Card>
 
-            {/* Tab switcher */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-              <Box sx={{ display: 'flex' }}>
-                {['overview', 'benefits', 'requirements'].map((tab) => (
+            {/* Enhanced Tab switcher */}
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ 
+                display: 'flex',
+                bgcolor: 'grey.100',
+                borderRadius: 2,
+                p: 0.5,
+                gap: 0.5
+              }}>
+                {[
+                  { key: 'overview', label: 'Overview', icon: <AccountBalance sx={{ fontSize: 18 }} /> },
+                  { key: 'benefits', label: 'Benefits', icon: <Star sx={{ fontSize: 18 }} /> },
+                  { key: 'requirements', label: 'Requirements', icon: <Warning sx={{ fontSize: 18 }} /> }
+                ].map((tab) => (
                   <Button
-                    key={tab}
-                    variant={activeTab === tab ? 'contained' : 'text'}
-                    onClick={() => setActiveTab(tab as any)}
-                    sx={{ mr: 1, mb: 1 }}
+                    key={tab.key}
+                    variant={activeTab === tab.key ? 'contained' : 'text'}
+                    onClick={() => setActiveTab(tab.key as any)}
+                    startIcon={tab.icon}
+                    sx={{ 
+                      flex: 1,
+                      py: 1.5,
+                      borderRadius: 1.5,
+                      fontWeight: activeTab === tab.key ? 'bold' : 'medium',
+                      bgcolor: activeTab === tab.key ? 'primary.main' : 'transparent',
+                      color: activeTab === tab.key ? 'white' : 'text.primary',
+                      '& .MuiButton-startIcon': {
+                        marginRight: 1,
+                        marginLeft: 0
+                      },
+                      '&:hover': {
+                        bgcolor: activeTab === tab.key ? 'primary.dark' : 'grey.200'
+                      }
+                    }}
                   >
-                    {tab === 'overview' ? 'Overview' : tab === 'benefits' ? 'Benefits' : 'Requirements'}
+                    {tab.label}
                   </Button>
                 ))}
               </Box>
@@ -257,56 +341,69 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
             {activeTab === 'overview' && cardDetails && (
               <Box>
                 <Grid container spacing={3}>
+                  {/* Basic Information */}
                   <Grid item xs={12} md={6}>
-                    <Typography variant="h6" gutterBottom>
-                      <CreditCard sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
+                      <AccountBalance sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                       Basic Information
                     </Typography>
-                    <List dense>
-                      <ListItem>
-                        <ListItemText
-                          primary="Issuing Bank"
-                          secondary={cardDetails.issuer}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Card Type"
-                          secondary={cardDetails.cardType}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Annual Fee"
-                          secondary={cardDetails.annualFee === 0 ? 'No annual fee' : formatCurrency(cardDetails.annualFee)}
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemText
-                          primary="Interest Rate"
-                          secondary={`${cardDetails.interestRate}%`}
-                        />
-                      </ListItem>
-                    </List>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {[
+                        { label: 'Issuing Bank', value: cardDetails.issuer },
+                        { label: 'Card Type', value: cardDetails.cardType?.charAt(0).toUpperCase() + cardDetails.cardType?.slice(1) },
+                        { label: 'Annual Fee', value: cardDetails.annualFee === 0 ? 'No annual fee' : formatCurrency(cardDetails.annualFee) },
+                        { label: 'Interest Rate', value: `${cardDetails.interestRate}%` }
+                      ].map((item, index) => (
+                        <Box key={index} sx={{
+                          p: 2,
+                          bgcolor: 'grey.50',
+                          borderRadius: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          '&:hover': { bgcolor: 'grey.100' }
+                        }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {item.label}
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {item.value}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
                   </Grid>
+                  
+                  {/* Reward Categories */}
                   <Grid item xs={12} md={6}>
-                    <Typography variant="h6" gutterBottom>
-                      <LocalOffer sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'success.main', mb: 2 }}>
+                      <LocalOffer sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                       Reward Categories
                     </Typography>
-                    <List dense>
-                      {cardDetails.rewardCategories.map((category, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {cardDetails.rewardCategories && cardDetails.rewardCategories.map((category, index) => (
+                        <Box key={index} sx={{
+                          p: 2,
+                          bgcolor: 'success.50',
+                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          '&:hover': { bgcolor: 'success.100' }
+                        }}>
+                          <Box sx={{ mr: 2, color: 'success.main' }}>
                             {getCategoryIcon(category.category)}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={category.description}
-                            secondary={`${category.rate}% rewards`}
-                          />
-                        </ListItem>
+                          </Box>
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {category.description}
+                            </Typography>
+                            <Typography variant="body1" color="success.main" fontWeight="bold">
+                              {category.rate}% rewards
+                            </Typography>
+                          </Box>
+                        </Box>
                       ))}
-                    </List>
+                    </Box>
                   </Grid>
                 </Grid>
               </Box>
@@ -314,93 +411,160 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
 
             {activeTab === 'benefits' && cardDetails && (
               <Box>
-                <Typography variant="h6" gutterBottom>
+                {/* Card Benefits */}
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'warning.main', mb: 2 }}>
+                  <Star sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                   Card Benefits
                 </Typography>
-                <List>
-                  {cardDetails.benefits.map((benefit, index) => (
-                    <ListItem key={index}>
-                      <ListItemIcon>
-                        <Star color="primary" />
-                      </ListItemIcon>
-                      <ListItemText primary={benefit} />
-                    </ListItem>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
+                  {cardDetails.benefits && cardDetails.benefits.map((benefit, index) => (
+                    <Box key={index} sx={{
+                      p: 2.5,
+                      bgcolor: 'warning.50',
+                      borderRadius: 1,
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      '&:hover': { bgcolor: 'warning.100' }
+                    }}>
+                      <Box sx={{ 
+                        width: 6,
+                        height: 6,
+                        bgcolor: 'warning.main',
+                        borderRadius: '50%',
+                        mr: 2,
+                        mt: 1,
+                        flexShrink: 0
+                      }} />
+                      <Typography variant="body1" sx={{ flexGrow: 1, lineHeight: 1.6 }}>
+                        {benefit}
+                      </Typography>
+                    </Box>
                   ))}
-                </List>
+                </Box>
 
+                {/* Limited Time Offers */}
                 {cardDetails.promotions && cardDetails.promotions.length > 0 && (
-                  <>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6" gutterBottom>
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'error.main', mb: 2 }}>
+                      <LocalOffer sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                       Limited Time Offers
                     </Typography>
-                    {cardDetails.promotions.map((promotion, index) => (
-                      <Card key={index} sx={{ mb: 2 }}>
-                        <CardContent>
-                          <Typography variant="subtitle1" color="primary">
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {cardDetails.promotions && cardDetails.promotions.map((promotion, index) => (
+                        <Box key={index} sx={{
+                          p: 3,
+                          bgcolor: 'error.50',
+                          borderRadius: 1,
+                          '&:hover': { bgcolor: 'error.100' }
+                        }}>
+                          <Typography variant="subtitle1" color="error.main" fontWeight="bold" gutterBottom>
                             {promotion.title}
                           </Typography>
-                          <Typography variant="body2" sx={{ mb: 1 }}>
+                          <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.6 }}>
                             {promotion.description}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Box sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            bgcolor: 'error.main',
+                            color: 'white',
+                            px: 2,
+                            py: 0.5,
+                            borderRadius: 1,
+                            fontSize: '0.875rem',
+                            fontWeight: 'medium'
+                          }}>
                             Expires: {promotion.expiryDate}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </>
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
                 )}
               </Box>
             )}
 
             {activeTab === 'requirements' && cardDetails && (
               <Box>
-                <Typography variant="h6" gutterBottom>
-                  <Warning sx={{ mr: 1, verticalAlign: 'middle' }} />
+                {/* Application Requirements */}
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'info.main', mb: 2 }}>
+                  <Warning sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                   Application Requirements
                 </Typography>
-                <Card sx={{ mb: 3 }}>
-                  <CardContent>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="body2" color="text.secondary">
-                          Minimum Credit Score
-                        </Typography>
-                        <Typography variant="h6">
-                          {cardDetails.requirements.minCreditScore}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="body2" color="text.secondary">
-                          Minimum Annual Income
-                        </Typography>
-                        <Typography variant="h6">
-                          {formatCurrency(cardDetails.requirements.minIncome)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Typography variant="body2">
-                          {cardDetails.requirements.description}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
+                
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{
+                      p: 3,
+                      bgcolor: 'info.50',
+                      borderRadius: 1,
+                      textAlign: 'center',
+                      '&:hover': { bgcolor: 'info.100' }
+                    }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Minimum Credit Score
+                      </Typography>
+                      <Typography variant="h4" fontWeight="bold" color="info.main">
+                        {cardDetails.requirements?.minCreditScore || 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{
+                      p: 3,
+                      bgcolor: 'info.50',
+                      borderRadius: 1,
+                      textAlign: 'center',
+                      '&:hover': { bgcolor: 'info.100' }
+                    }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Minimum Annual Income
+                      </Typography>
+                      <Typography variant="h4" fontWeight="bold" color="info.main">
+                        {cardDetails.requirements?.minIncome ? formatCurrency(cardDetails.requirements.minIncome) : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+                
+                {cardDetails.requirements?.description && (
+                  <Alert severity="info" sx={{ borderRadius: 1, mb: 4 }}>
+                    <Typography variant="body1">
+                      {cardDetails.requirements.description}
+                    </Typography>
+                  </Alert>
+                )}
 
-                <Typography variant="h6" gutterBottom>
+                {/* Terms and Conditions */}
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'grey.700', mb: 2 }}>
+                  <Warning sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                   Terms and Conditions
                 </Typography>
-                <List>
-                  {cardDetails.terms.map((term, index) => (
-                    <ListItem key={index}>
-                      <ListItemText
-                        primary={term}
-                        primaryTypographyProps={{ variant: 'body2' }}
-                      />
-                    </ListItem>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {cardDetails.terms && cardDetails.terms.map((term, index) => (
+                    <Box key={index} sx={{
+                      p: 2.5,
+                      bgcolor: 'grey.50',
+                      borderRadius: 1,
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      '&:hover': { bgcolor: 'grey.100' }
+                    }}>
+                      <Typography variant="body2" sx={{ 
+                        color: 'primary.main', 
+                        fontWeight: 'bold', 
+                        mr: 2, 
+                        mt: 0.5,
+                        minWidth: '24px'
+                      }}>
+                        {index + 1}.
+                      </Typography>
+                      <Typography variant="body1" sx={{ flexGrow: 1, lineHeight: 1.6 }}>
+                        {term}
+                      </Typography>
+                    </Box>
                   ))}
-                </List>
+                </Box>
               </Box>
             )}
           </Box>

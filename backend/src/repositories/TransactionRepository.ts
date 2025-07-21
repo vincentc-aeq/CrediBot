@@ -49,6 +49,18 @@ export class TransactionRepository extends BaseRepository<Transaction> {
   }
 
   /**
+   * 根據用戶 ID 和起始日期查找交易
+   */
+  async findByUserIdSince(userId: string, since: Date): Promise<Transaction[]> {
+    const transactions = await this.db(this.tableName)
+      .where({ user_id: userId })
+      .where('transaction_date', '>=', since)
+      .orderBy('transaction_date', 'desc');
+
+    return transactions.map(this.mapFromDb);
+  }
+
+  /**
    * 根據用戶 ID 和過濾條件查找交易
    */
   async findByFilters(filters: TransactionFilters): Promise<Transaction[]> {
@@ -290,7 +302,8 @@ export class TransactionRepository extends BaseRepository<Transaction> {
       transactionDate: transaction.transaction_date,
       cardUsed: transaction.card_used,
       plaidTransactionId: transaction.plaid_transaction_id,
-      metadata: transaction.metadata ? JSON.parse(transaction.metadata) : {},
+      metadata: transaction.metadata ? 
+        (typeof transaction.metadata === 'string' ? JSON.parse(transaction.metadata) : transaction.metadata) : {},
       createdAt: transaction.created_at,
       updatedAt: transaction.updated_at,
     };

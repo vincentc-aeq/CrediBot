@@ -9,6 +9,7 @@ import { RecommendationRequest, RecommendationType } from '../services/Recommend
 
 const router = express.Router();
 
+
 // All recommendation routes require authentication
 router.use(authMiddleware.authenticate);
 
