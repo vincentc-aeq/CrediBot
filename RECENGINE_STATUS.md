@@ -56,19 +56,34 @@ POST /estimate-rewards
 
 ## ⚠️ 目前限制 & 需要注意的地方
 
-### 1. 模擬實現
-- LightGBM模型: 使用邏輯規則模擬（非真實ML訓練）
-- 特徵計算: 簡化版本，缺少複雜用戶行為分析
-- 數據來源: Mock數據，非真實銀行交易
+### 1. Mock Implementation Status
+- **RecEngine 架構**: Mock implementation using business rules, not real ML models
+- **原計劃**: 實際 LightGBM/MLflow ML pipeline (參考 specs/recengine.md)
+- **現狀**: 智能業務邏輯模擬，基於真實消費數據計算
+- **功能完整性**: 所有 API 端點已實現，與規格兼容
+- **推薦品質**: 基於實際回饋率計算和用戶消費模式，非隨機推薦
 
-### 2. 生產環境需求
-```bash
-# 還需要整合:
-- 真實信用卡數據庫連接
-- Plaid API 金融數據整合
-- PostgreSQL 生產數據庫
-- Redis 快取系統
-- 真實 LightGBM/scikit-learn 模型
+### 2. Enhanced Mock Logic Implementation (2025-07-21 Update)
+```
+✅ COMPLETED IMPROVEMENTS:
+- Removed randomness from personalized-ranking endpoint
+- Enhanced ranking based on real user spending patterns from transaction history
+- Intelligent reward calculations per category
+- Consistent recommendations across multiple requests
+- Integration with real PostgreSQL transaction data
+
+✅ CURRENT CAPABILITIES:
+- Analyzes 6 months of user transaction history
+- Calculates spending patterns by category (dining, groceries, gas, travel, etc.)
+- Ranks cards based on actual reward potential
+- Provides deterministic, personalized recommendations
+- No more random scoring - all logic is business-rule based
+
+✅ INTEGRATION STATUS:
+- Backend properly sends real spending patterns to RecEngine
+- RecEngine calculates annual rewards based on actual usage
+- Homepage recommendations now reflect user's actual spending behavior
+- Transaction-based recommendations use real reward calculations
 ```
 
 ### 3. CrediBot 整合

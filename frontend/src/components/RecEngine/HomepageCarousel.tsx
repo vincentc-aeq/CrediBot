@@ -209,44 +209,48 @@ export const HomepageCarousel: React.FC = () => {
         <Carousel
           autoPlay={false}
           indicators
-          navButtonsAlwaysVisible
+          navButtonsAlwaysVisible={false}
           animation="slide"
           index={activeIndex}
           onChange={setActiveIndex}
-          sx={{ width: '100%' }}
+          interval={0}
+          sx={{ 
+            width: '100%',
+            '& .MuiIconButton-root': {
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              color: 'white',
+              margin: '0 8px',
+              '&:hover': {
+                backgroundColor: 'rgba(0,0,0,0.5)',
+              },
+            },
+          }}
         >
           {recommendations.map((card) => (
-            <Box key={card.card_id} sx={{ px: 1, height: 300 }}>
+            <Box key={card.card_id} sx={{ px: 2, height: 300 }}>
               <CreditCardDisplay card={card} onLearnMore={handleLearnMore} />
             </Box>
           ))}
         </Carousel>
       ) : (
-        // Desktop: Horizontal scroll
+        // Desktop: Equal width grid
         <Box
           sx={{
-            display: 'flex',
+            display: 'grid',
+            gridTemplateColumns: `repeat(${Math.min(recommendations.length, 3)}, 1fr)`,
             gap: 3,
-            overflowX: 'auto',
-            pb: 2,
-            '&::-webkit-scrollbar': {
-              height: 8,
+            '@media (max-width: 1200px)': {
+              gridTemplateColumns: 'repeat(2, 1fr)',
             },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: theme.palette.grey[200],
-              borderRadius: 4,
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: theme.palette.primary.main,
-              borderRadius: 4,
+            '@media (max-width: 900px)': {
+              gridTemplateColumns: '1fr',
             },
           }}
         >
-          {recommendations.map((card) => (
+          {recommendations.slice(0, 3).map((card) => (
             <Box
               key={card.card_id}
               sx={{
-                minWidth: 350,
                 height: 250,
               }}
             >

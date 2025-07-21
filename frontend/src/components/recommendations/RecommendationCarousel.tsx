@@ -86,13 +86,13 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
     );
   };
 
-  // Auto-play carousel
-  useEffect(() => {
-    if (recommendations.length > cardsPerView) {
-      const interval = setInterval(goToNext, 5000); // Auto-switch every 5 seconds
-      return () => clearInterval(interval);
-    }
-  }, [recommendations.length, cardsPerView]);
+  // Auto-play carousel (disabled)
+  // useEffect(() => {
+  //   if (recommendations.length > cardsPerView) {
+  //     const interval = setInterval(goToNext, 5000); // Auto-switch every 5 seconds
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [recommendations.length, cardsPerView]);
 
   // Get priority color
   const getPriorityColor = (priority: string) => {
@@ -185,7 +185,7 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
   const visibleRecommendations = recommendations.slice(currentIndex, currentIndex + cardsPerView);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4, px: { xs: 2, sm: 3, md: 4 } }}>
       {/* Title section */}
       <Box sx={{ mb: 4, textAlign: 'center' }}>
         <Typography variant="h4" component="h2" gutterBottom>
@@ -197,7 +197,7 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
       </Box>
 
       {/* Carousel section */}
-      <Box sx={{ position: 'relative' }}>
+      <Box sx={{ position: 'relative', width: '100%' }}>
         {/* Navigation buttons */}
         {recommendations.length > cardsPerView && (
           <>
@@ -206,13 +206,17 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
               size="small"
               sx={{
                 position: 'absolute',
-                left: -20,
+                left: -60,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 1,
                 minWidth: 40,
                 height: 40,
                 borderRadius: '50%',
+                backgroundColor: 'background.paper',
+                '&:hover': {
+                  backgroundColor: 'background.paper',
+                },
               }}
               onClick={goToPrevious}
               disabled={currentIndex === 0}
@@ -224,13 +228,17 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
               size="small"
               sx={{
                 position: 'absolute',
-                right: -20,
+                right: -60,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 1,
                 minWidth: 40,
                 height: 40,
                 borderRadius: '50%',
+                backgroundColor: 'background.paper',
+                '&:hover': {
+                  backgroundColor: 'background.paper',
+                },
               }}
               onClick={goToNext}
               disabled={currentIndex + cardsPerView >= recommendations.length}
@@ -241,13 +249,29 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
         )}
 
         {/* Recommendation cards */}
-        <Grid container spacing={0}>
+        <Box 
+          sx={{ 
+            display: 'flex',
+            gap: 3,
+            width: '100%',
+            justifyContent: 'flex-start',
+          }}
+        >
           {visibleRecommendations.map((recommendation, index) => (
-            <Grid item xs={12} sm={6} md={4} key={recommendation.cardId} sx={{ px: 1.5, display: 'flex' }}>
+            <Box
+              key={recommendation.cardId}
+              sx={{
+                width: 'calc(33.333% - 16px)', // 1/3 width minus gap compensation
+                display: 'flex',
+                flexShrink: 0,
+                flexGrow: 0,
+              }}
+            >
               <Card
                 sx={{
                   width: '100%',
                   height: '100%',
+                  minHeight: 280,
                   display: 'flex',
                   flexDirection: 'column',
                   cursor: 'pointer',
@@ -261,11 +285,18 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
               >
                 <CardContent sx={{ flexGrow: 1 }}>
                   {/* Card name and score */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h6" component="h3" sx={{ flexGrow: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2, minHeight: 48 }}>
+                    <Typography variant="h6" component="h3" sx={{ 
+                      flexGrow: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
                       {recommendation.cardName}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', ml: 1, flexShrink: 0 }}>
                       <Star color="primary" fontSize="small" />
                       <Typography variant="body2" sx={{ ml: 0.5 }}>
                         {(recommendation.score * 10).toFixed(1)}
@@ -274,26 +305,34 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
                   </Box>
 
                   {/* Recommendation reason */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ 
+                    mb: 2, 
+                    minHeight: 40,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                  }}>
                     {recommendation.reasoning}
                   </Typography>
 
                   {/* Estimated benefit */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, minHeight: 24 }}>
                     <TrendingUp color="success" fontSize="small" />
-                    <Typography variant="body2" sx={{ ml: 0.5 }}>
-                      Estimated Annual Benefit: {formatBenefit(recommendation.estimatedBenefit)}
+                    <Typography variant="body2" sx={{ ml: 0.5, fontSize: '0.875rem' }}>
+                      Annual Benefit: {formatBenefit(recommendation.estimatedBenefit)}
                     </Typography>
                   </Box>
 
                   {/* Tags */}
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, minHeight: 32 }}>
                     <Chip
                       label={recommendation.priority}
                       color={getPriorityColor(recommendation.priority)}
                       size="small"
                     />
-                    {recommendation.tags.map((tag, tagIndex) => (
+                    {recommendation.tags.slice(0, 2).map((tag, tagIndex) => (
                       <Chip
                         key={tagIndex}
                         label={tag}
@@ -321,9 +360,9 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
 
         {/* Indicators */}
         {recommendations.length > cardsPerView && (

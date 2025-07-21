@@ -11,6 +11,7 @@ import { CreditCard } from '../models/CreditCard';
 import { userRepository } from '../repositories/UserRepository';
 import { creditCardRepository } from '../repositories/CreditCardRepository';
 import { userCardRepository } from '../repositories/UserCardRepository';
+import { transactionRepository } from '../repositories/TransactionRepository';
 
 export interface HomepageRecommendations {
   featured: PersonalizedRecommendation[];
@@ -439,19 +440,87 @@ export class PersonalizedRankerService {
    * 計算消費模式
    */
   private async calculateSpendingPatterns(userId: string) {
-    // 實作消費模式計算邏輯
-    return {
-      totalMonthlySpending: 3000,
-      categorySpending: {
-        dining: 800,
-        groceries: 600,
-        travel: 400,
-        gas: 300,
-        other: 900
-      },
-      transactionFrequency: 45,
-      averageTransactionAmount: 67
-    };
+    try {
+      // 獲取過去6個月的交易記錄
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const transactions = await transactionRepository.findByUserIdSince(userId, sixMonthsAgo);
+      
+      if (!transactions || transactions.length === 0) {
+        // 沒有交易記錄時返回默認模式
+        return {
+          totalMonthlySpending: 3000,
+          categorySpending: {
+            dining: 600,
+            groceries: 400,
+            gas: 200,
+            travel: 150,
+            other: 1650
+          },
+          transactionFrequency: 30,
+          averageTransactionAmount: 100
+        };
+      }
+
+      // 計算各類別消費總額
+      const categoryTotals: Record<string, number> = {};
+      let totalAmount = 0;
+      let totalCount = 0;
+
+      transactions.forEach(txn => {
+        const category = txn.category || 'other';
+        const amount = parseFloat(txn.amount);
+        
+        categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+        totalAmount += amount;
+        totalCount++;
+      });
+
+      // 計算月平均
+      const monthsOfData = Math.max(1, (new Date().getTime() - sixMonthsAgo.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const totalMonthlySpending = totalAmount / monthsOfData;
+      const transactionFrequency = totalCount / monthsOfData;
+      const averageTransactionAmount = totalCount > 0 ? totalAmount / totalCount : 0;
+
+      // 轉換為月平均類別消費
+      const categorySpending: Record<string, number> = {};
+      Object.keys(categoryTotals).forEach(category => {
+        categorySpending[category] = categoryTotals[category] / monthsOfData;
+      });
+
+      // 確保有基本類別
+      const requiredCategories = ['dining', 'groceries', 'gas', 'travel', 'other'];
+      requiredCategories.forEach(category => {
+        if (!categorySpending[category]) {
+          categorySpending[category] = 0;
+        }
+      });
+
+      return {
+        totalMonthlySpending: Math.round(totalMonthlySpending),
+        categorySpending,
+        transactionFrequency: Math.round(transactionFrequency),
+        averageTransactionAmount: Math.round(averageTransactionAmount)
+      };
+
+    } catch (error) {
+      console.error('Error calculating spending patterns:', error);
+      
+      // 錯誤時返回默認模式
+      return {
+        totalMonthlySpending: 3000,
+        categorySpending: {
+          dining: 600,
+          groceries: 400,
+          gas: 200,
+          travel: 150,
+          other: 1650
+        },
+        transactionFrequency: 30,
+        averageTransactionAmount: 100
+      };
+    }
   }
 
   /**
