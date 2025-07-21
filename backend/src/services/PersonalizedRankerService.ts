@@ -1,4 +1,4 @@
-import { RecEngineClientFactory, defaultRecEngineConfig } from './RecEngineClient';
+import { RecEngineClientFactory, RecEngineClient, defaultRecEngineConfig } from './RecEngineClient';
 import {
   PersonalizedRankerRequest,
   PersonalizedRankerResponse,
@@ -11,6 +11,7 @@ import { CreditCard } from '../models/CreditCard';
 import { userRepository } from '../repositories/UserRepository';
 import { creditCardRepository } from '../repositories/CreditCardRepository';
 import { userCardRepository } from '../repositories/UserCardRepository';
+import { transactionRepository } from '../repositories/TransactionRepository';
 
 export interface HomepageRecommendations {
   featured: PersonalizedRecommendation[];
@@ -39,7 +40,13 @@ export interface RecommendationContext {
 }
 
 export class PersonalizedRankerService {
-  private recEngineClient = RecEngineClientFactory.getInstance(defaultRecEngineConfig);
+  private recEngineClient: RecEngineClient;
+  
+  constructor() {
+    // Reset and create new instance with updated config
+    RecEngineClientFactory.reset();
+    this.recEngineClient = RecEngineClientFactory.getInstance(defaultRecEngineConfig);
+  }
 
   /**
    * 獲取首頁個人化推薦
@@ -58,12 +65,19 @@ export class PersonalizedRankerService {
       // 獲取候選信用卡
       const candidateCards = await this.getCandidateCards(userId);
       
+      // 獲取用戶當前持有的信用卡ID列表
+      const userCards = await this.getUserCardIds(userId);
+      
       // 呼叫 RecEngine Personalized Ranker
       const request: PersonalizedRankerRequest = {
-        userProfile,
-        candidateCards,
-        contextualFactors,
-        maxResults: maxResults * 2 // 獲取更多結果以便分類
+        user_id: userId,
+        user_cards: userCards,
+        spending_pattern: userProfile.spendingPatterns.categorySpending,
+        preferences: {
+          maxAnnualFee: userProfile.preferences.maxAnnualFee,
+          prioritizedCategories: userProfile.preferences.prioritizedCategories,
+          riskTolerance: userProfile.preferences.riskTolerance
+        }
       };
 
       const response = await this.recEngineClient.personalizedRanking(request);
@@ -78,10 +92,10 @@ export class PersonalizedRankerService {
         featured: categorizedRecommendations.featured,
         trending: categorizedRecommendations.trending,
         personalized: categorizedRecommendations.personalized,
-        diversityScore: response.diversity_score,
+        diversityScore: response.ranking_score,
         refreshedAt: new Date(),
         metadata: {
-          totalCandidates: response.total_candidates,
+          totalCandidates: response.ranked_cards.length,
           filtersCriteria: this.getAppliedFilters(userProfile),
           personalizationFactors: this.getPersonalizationFactors(userProfile, contextualFactors)
         }
@@ -289,17 +303,17 @@ export class PersonalizedRankerService {
     return {
       id: userId,
       demographics: {
-        age: user.age,
-        income: user.income,
-        creditScore: user.creditScore,
-        location: user.location
+        age: 30, // Default age - could be enhanced with additional user fields
+        income: 50000, // Default income - could be enhanced with additional user fields
+        creditScore: 700, // Default credit score - could be enhanced with additional user fields
+        location: 'US' // Default location - could be enhanced with additional user fields
       },
       spendingPatterns,
       preferences: {
-        preferredCardTypes: user.preferredCardTypes || [],
-        maxAnnualFee: user.maxAnnualFee || 500,
-        prioritizedCategories: user.prioritizedCategories || [],
-        riskTolerance: user.riskTolerance || 'medium'
+        preferredCardTypes: user.preferences?.cardTypes || [],
+        maxAnnualFee: user.preferences?.maxAnnualFee || 500,
+        prioritizedCategories: [], // Could be derived from spending patterns
+        riskTolerance: 'medium' // Default risk tolerance
       }
     };
   }
@@ -338,6 +352,14 @@ export class PersonalizedRankerService {
   }
 
   /**
+   * 獲取用戶當前持有的信用卡ID列表
+   */
+  private async getUserCardIds(userId: string): Promise<string[]> {
+    const userCards = await userCardRepository.findUserCardsWithDetails(userId);
+    return userCards.map(uc => uc.creditCardId);
+  }
+
+  /**
    * 獲取候選信用卡
    */
   private async getCandidateCards(userId: string): Promise<CreditCard[]> {
@@ -361,22 +383,22 @@ export class PersonalizedRankerService {
     personalized: PersonalizedRecommendation[];
   } {
     // 按分數排序
-    const sorted = [...recommendations].sort((a, b) => b.personalizedScore - a.personalizedScore);
+    const sorted = [...recommendations].sort((a, b) => b.ranking_score - a.ranking_score);
 
     // 特色推薦：高分且有特殊優勢的卡片
     const featured = sorted
-      .filter(rec => rec.personalizedScore > 0.8)
+      .filter(rec => rec.ranking_score > 0.8)
       .slice(0, maxPerCategory);
 
     // 趨勢推薦：市場熱門或新推出的卡片
     const trending = sorted
-      .filter(rec => rec.reasoning.includes('trending') || rec.reasoning.includes('popular'))
+      .filter(rec => rec.reason.includes('trending') || rec.reason.includes('popular'))
       .slice(0, maxPerCategory);
 
     // 個人化推薦：剩餘的高分推薦
-    const used = new Set([...featured.map(r => r.cardId), ...trending.map(r => r.cardId)]);
+    const used = new Set([...featured.map(r => r.card_id), ...trending.map(r => r.card_id)]);
     const personalized = sorted
-      .filter(rec => !used.has(rec.cardId))
+      .filter(rec => !used.has(rec.card_id))
       .slice(0, maxPerCategory);
 
     return { featured, trending, personalized };
@@ -418,19 +440,87 @@ export class PersonalizedRankerService {
    * 計算消費模式
    */
   private async calculateSpendingPatterns(userId: string) {
-    // 實作消費模式計算邏輯
-    return {
-      totalMonthlySpending: 3000,
-      categorySpending: {
-        dining: 800,
-        groceries: 600,
-        travel: 400,
-        gas: 300,
-        other: 900
-      },
-      transactionFrequency: 45,
-      averageTransactionAmount: 67
-    };
+    try {
+      // 獲取過去6個月的交易記錄
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const transactions = await transactionRepository.findByUserIdSince(userId, sixMonthsAgo);
+      
+      if (!transactions || transactions.length === 0) {
+        // 沒有交易記錄時返回默認模式
+        return {
+          totalMonthlySpending: 3000,
+          categorySpending: {
+            dining: 600,
+            groceries: 400,
+            gas: 200,
+            travel: 150,
+            other: 1650
+          },
+          transactionFrequency: 30,
+          averageTransactionAmount: 100
+        };
+      }
+
+      // 計算各類別消費總額
+      const categoryTotals: Record<string, number> = {};
+      let totalAmount = 0;
+      let totalCount = 0;
+
+      transactions.forEach(txn => {
+        const category = txn.category || 'other';
+        const amount = parseFloat(txn.amount);
+        
+        categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+        totalAmount += amount;
+        totalCount++;
+      });
+
+      // 計算月平均
+      const monthsOfData = Math.max(1, (new Date().getTime() - sixMonthsAgo.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const totalMonthlySpending = totalAmount / monthsOfData;
+      const transactionFrequency = totalCount / monthsOfData;
+      const averageTransactionAmount = totalCount > 0 ? totalAmount / totalCount : 0;
+
+      // 轉換為月平均類別消費
+      const categorySpending: Record<string, number> = {};
+      Object.keys(categoryTotals).forEach(category => {
+        categorySpending[category] = categoryTotals[category] / monthsOfData;
+      });
+
+      // 確保有基本類別
+      const requiredCategories = ['dining', 'groceries', 'gas', 'travel', 'other'];
+      requiredCategories.forEach(category => {
+        if (!categorySpending[category]) {
+          categorySpending[category] = 0;
+        }
+      });
+
+      return {
+        totalMonthlySpending: Math.round(totalMonthlySpending),
+        categorySpending,
+        transactionFrequency: Math.round(transactionFrequency),
+        averageTransactionAmount: Math.round(averageTransactionAmount)
+      };
+
+    } catch (error) {
+      console.error('Error calculating spending patterns:', error);
+      
+      // 錯誤時返回默認模式
+      return {
+        totalMonthlySpending: 3000,
+        categorySpending: {
+          dining: 600,
+          groceries: 400,
+          gas: 200,
+          travel: 150,
+          other: 1650
+        },
+        transactionFrequency: 30,
+        averageTransactionAmount: 100
+      };
+    }
   }
 
   /**

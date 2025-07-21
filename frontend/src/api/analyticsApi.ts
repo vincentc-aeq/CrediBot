@@ -161,4 +161,11 @@ export const analyticsApi = {
     const response = await apiClient.get('/analytics/dashboard/trends', { params });
     return response.data;
   },
+
+  getRecentTransactions: async (limit: number = 20, offset: number = 0) => {
+    const response = await apiClient.get('/analytics/recent-transactions', {
+      params: { limit, offset }
+    });
+    return response.data;
+  },
 };

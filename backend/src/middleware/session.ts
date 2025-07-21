@@ -67,7 +67,21 @@ export class SessionManager {
         return null;
       }
 
-      const session = JSON.parse(sessionData) as SessionData;
+      // Check if sessionData is already a string and valid JSON
+      let session: SessionData;
+      try {
+        if (typeof sessionData === 'string') {
+          session = JSON.parse(sessionData) as SessionData;
+        } else {
+          // If it's already an object, use it directly
+          session = sessionData as SessionData;
+        }
+      } catch (error) {
+        console.error('Failed to parse session data:', error, 'Data:', sessionData);
+        // Try to handle corrupted session data
+        await this.destroySession(sessionId);
+        return null;
+      }
       
       if (new Date(session.expiresAt) < new Date()) {
         await this.destroySession(sessionId);

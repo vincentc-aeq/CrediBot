@@ -63,6 +63,57 @@ npm run build       # Build for production
 npm test           # Run tests
 ```
 
+### RecEngine (from /recengine directory)
+
+```bash
+# Start RecEngine (MUST use venv)
+source .venv/bin/activate
+uvicorn src.api:app --host 0.0.0.0 --port 8080 --reload
+
+# Health check
+curl http://localhost:8080/health
+```
+
+## API Testing
+
+### Authentication
+
+```bash
+# Login to get access token (IMPORTANT: Use proper JSON escaping)
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"john.doe@example.com\", \"password\": \"TestRecEngine123!\", \"rememberMe\": false}"
+
+# Use the returned accessToken for authenticated requests
+export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+# Available test accounts:
+# Email: john.doe@example.com
+# Password: TestRecEngine123!
+```
+
+### Recent Transactions API
+
+```bash
+# Get recent transactions with better card recommendations
+curl "http://localhost:3001/api/analytics/recent-transactions?limit=5&offset=0" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### RecEngine Direct Testing
+
+```bash
+# Test trigger classifier
+curl -X POST http://localhost:8080/trigger-classify \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "test", "amount": 100, "category": "dining", "current_card_id": "citi_double_cash_card"}'
+
+# Test personalized ranking
+curl -X POST http://localhost:8080/personalized-ranking \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "test", "spending_pattern": {"dining": 1000, "travel": 500}}'
+```
+
 ## Architecture
 
 ### Backend Structure
@@ -119,8 +170,18 @@ The project uses environment variables for configuration. See `.env.example` fil
 
 ### Analytics
 
+- `GET /api/analytics/recent-transactions` - Recent transactions with better card recommendations
 - `GET /api/analytics/spending-patterns` - User spending analysis
 - `GET /api/analytics/card-performance` - Card performance metrics
+
+### RecEngine (Direct API - Port 8080)
+
+- `GET /health` - Health check and status
+- `POST /trigger-classify` - Analyze transaction for better card recommendations
+- `POST /personalized-ranking` - Get personalized card rankings
+- `POST /estimate-rewards` - Estimate potential rewards
+- `POST /optimize-portfolio` - Portfolio optimization suggestions
+- `GET /models/info` - Model information and metrics
 
 ## Project Documentation
 

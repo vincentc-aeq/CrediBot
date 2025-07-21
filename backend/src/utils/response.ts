@@ -33,7 +33,7 @@ export class ResponseUtils {
       success: true,
       data,
       timestamp: new Date().toISOString(),
-      requestId: res.locals.requestId
+      requestId: res.locals?.requestId || 'unknown'
     };
 
     return res.status(statusCode).json(response);
@@ -54,7 +54,7 @@ export class ResponseUtils {
         details
       },
       timestamp: new Date().toISOString(),
-      requestId: res.locals.requestId
+      requestId: res.locals?.requestId || 'unknown'
     };
 
     return res.status(statusCode).json(response);
@@ -82,7 +82,7 @@ export class ResponseUtils {
         hasPrevious: currentPage > 1
       },
       timestamp: new Date().toISOString(),
-      requestId: res.locals.requestId
+      requestId: res.locals?.requestId || 'unknown'
     };
 
     return res.status(statusCode).json(response);

@@ -397,8 +397,10 @@ export class UserCardRepository extends BaseRepository<UserCard> {
       issuer: row.issuer,
       cardType: row.card_type,
       annualFee: row.annual_fee ? parseFloat(row.annual_fee) : 0,
-      rewardStructure: row.reward_structure ? JSON.parse(row.reward_structure) : [],
-      benefits: row.benefits ? JSON.parse(row.benefits) : [],
+      rewardStructure: row.reward_structure ? 
+        (typeof row.reward_structure === 'string' ? JSON.parse(row.reward_structure) : row.reward_structure) : [],
+      benefits: row.benefits ? 
+        (typeof row.benefits === 'string' ? JSON.parse(row.benefits) : row.benefits) : [],
       imageUrl: row.image_url,
       applyUrl: row.apply_url,
     };

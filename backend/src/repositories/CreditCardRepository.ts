@@ -99,6 +99,51 @@ export class CreditCardRepository extends BaseRepository<CreditCard> {
 
     return dbRow;
   }
+
+  /**
+   * Find cards that have good rewards for a specific spending category
+   */
+  async findByCategory(category: string): Promise<CreditCard[]> {
+    try {
+      // Get all active cards and filter by reward structure in application
+      const cards = await this.findActiveCards();
+      
+      return cards.filter(card => {
+        try {
+          if (!card.rewardStructure) return false;
+          
+          // Check if the card has specific rewards for this category
+          return card.rewardStructure.some(reward => 
+            reward.category === category && reward.rewardRate > 1.0
+          );
+        } catch {
+          return false;
+        }
+      }).sort((a, b) => {
+        // Sort by reward rate for the category (highest first)
+        const aRate = this.getRewardRateForCategory(a, category);
+        const bRate = this.getRewardRateForCategory(b, category);
+        return bRate - aRate;
+      });
+    } catch (error) {
+      console.error('Error finding cards by category:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get reward rate for a specific category
+   */
+  private getRewardRateForCategory(card: CreditCard, category: string): number {
+    try {
+      if (!card.rewardStructure) return 1.0;
+      
+      const categoryReward = card.rewardStructure.find(reward => reward.category === category);
+      return categoryReward ? categoryReward.rewardRate : 1.0;
+    } catch {
+      return 1.0;
+    }
+  }
 }
 
 export const creditCardRepository = new CreditCardRepository();

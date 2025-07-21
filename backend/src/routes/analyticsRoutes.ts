@@ -65,6 +65,11 @@ router.get("/dashboard/trends", (req, res) =>
   analyticsController.getTrendsAnalytics(req, res)
 );
 
+// Recent transactions with recommendations
+router.get("/recent-transactions", (req, res) =>
+  analyticsController.getRecentTransactionsWithRecommendations(req, res)
+);
+
 // System performance metrics (admin only)
 router.get("/system", (req, res) =>
   analyticsController.getSystemPerformanceMetrics(req, res)

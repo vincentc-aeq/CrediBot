@@ -401,4 +401,34 @@ export class AnalyticsController {
       });
     }
   }
+
+  /**
+   * Get recent transactions with card recommendations
+   */
+  async getRecentTransactionsWithRecommendations(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('=== getRecentTransactionsWithRecommendations called ===');
+      const userId = (req.user as any).id;
+      const { limit = 20, offset = 0 } = req.query;
+      console.log(`User ID: ${userId}, Limit: ${limit}, Offset: ${offset}`);
+
+      const transactions = await this.analyticsService.getRecentTransactionsWithRecommendations(
+        userId, 
+        parseInt(limit as string), 
+        parseInt(offset as string)
+      );
+
+      res.status(200).json({
+        success: true,
+        data: transactions,
+      });
+    } catch (error) {
+      console.error("Error getting recent transactions with recommendations:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to get recent transactions with recommendations",
+        error: (error as Error).message,
+      });
+    }
+  }
 }
