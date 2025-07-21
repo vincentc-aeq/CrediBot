@@ -35,7 +35,7 @@ const LoginPage = () => {
       setErrorMessage('');
       try {
         await login(data.token);
-        navigate('/dashboard');
+        navigate('/');
       } catch (error) {
         console.error('Login process failed:', error);
         setErrorMessage('An error occurred during login, please try again.');

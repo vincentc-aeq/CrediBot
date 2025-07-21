@@ -53,7 +53,7 @@ export const PlaidConnectionFlow: React.FC<PlaidConnectionFlowProps> = ({
 
   const handleContinue = useCallback(() => {
     onComplete?.(connectedAccounts);
-    navigate('/dashboard');
+    navigate('/');
   }, [connectedAccounts, onComplete, navigate]);
 
   const handleViewAccounts = useCallback(() => {
