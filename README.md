@@ -31,7 +31,7 @@ A personalized financial advisory platform that analyzes user spending patterns 
 ### External Services
 
 - Plaid API for financial data
-- RecEngine ML service for recommendations
+- RecEngine ML service for recommendations (runs on port 8080)
 - SendGrid for email notifications
 
 ## Development Setup
@@ -62,7 +62,7 @@ A personalized financial advisory platform that analyzes user spending patterns 
    ```bash
    # Run database migrations
    docker-compose exec backend npm run migrate
-   
+
    # Import seed data
    docker-compose exec backend npm run seed
    ```
@@ -74,16 +74,18 @@ A personalized financial advisory platform that analyzes user spending patterns 
 
 ### Local Development Setup (Recommended for Debugging)
 
-For better debugging experience, it's recommended to run the backend locally with `npm run dev` while using Docker for databases.
+For better debugging experience, it's recommended to run services locally with Docker only for databases. This setup provides hot reload and better debugging capabilities.
 
-#### Option 1: Docker Databases + Local Backend
+#### Complete Local Development Setup
+
+Follow these steps in order to start all services:
 
 1. **Start database services only**
 
    ```bash
    # Start PostgreSQL and Redis with Docker
    docker-compose up -d postgres redis
-   
+
    # Check service status
    docker-compose ps
    ```
@@ -92,20 +94,20 @@ For better debugging experience, it's recommended to run the backend locally wit
 
    ```bash
    cd backend
-   
+
    # Install dependencies
    npm install
-   
+
    # Setup environment variables
    cp .env.example .env
    # Edit .env file as needed
-   
+
    # Run database migrations
    npm run migrate
-   
+
    # Import seed data
    npm run seed
-   
+
    # Start development server with hot reload
    npm run dev
    ```
@@ -114,28 +116,53 @@ For better debugging experience, it's recommended to run the backend locally wit
 
    ```bash
    cd frontend
-   
-   # Install dependencies
-   npm install
-   
+
+   # Install dependencies (requires legacy peer deps flag)
+   npm install --legacy-peer-deps
+
    # Start development server
    npm start
    ```
 
-#### Option 2: Local PostgreSQL Installation
+4. **Start RecEngine ML Service**
 
-If you prefer to install PostgreSQL locally:
+   ```bash
+   cd recengine
+
+   # Activate virtual environment
+   source .venv/bin/activate
+
+   # If .venv doesn't exist, create it first:
+   # python -m venv .venv
+   # source .venv/bin/activate
+   # pip install -r requirements.txt
+
+   # Start RecEngine on port 8080
+   uvicorn src.api:app --host 0.0.0.0 --port 8080 --reload
+   ```
+
+#### Service URLs and Ports
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
+- RecEngine API: http://localhost:8080
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+
+#### Alternative: Local PostgreSQL Installation
+
+If you prefer to install PostgreSQL locally instead of using Docker:
 
 1. **Install PostgreSQL and Redis**
 
    ```bash
    # Using Homebrew on macOS
    brew install postgresql@15 redis
-   
+
    # Start services
    brew services start postgresql@15
    brew services start redis
-   
+
    # Create database
    createdb credit_card_recommendations
    ```
@@ -149,7 +176,7 @@ If you prefer to install PostgreSQL locally:
    # DATABASE_URL=postgresql://username:password@localhost:5432/credit_card_recommendations
    ```
 
-3. **Continue with backend and frontend setup as above**
+3. **Continue with steps 2-4 from the main setup above**
 
 ### VS Code Debugging Setup
 
@@ -158,6 +185,7 @@ For enhanced debugging experience, use the included VS Code configuration:
 1. **Launch configuration is already provided** in `.vscode/launch.json`
 
 2. **Available debug configurations:**
+
    - **Debug Backend**: Debug the backend server with breakpoints
    - **Debug Backend Tests**: Debug backend tests
 
@@ -188,6 +216,7 @@ npm run seed             # Re-run seed data
 #### Using GUI Tools
 
 Recommended database management tools:
+
 - **TablePlus** (macOS/Windows)
 - **pgAdmin** (Cross-platform)
 - **DBeaver** (Cross-platform)
@@ -196,11 +225,12 @@ Recommended database management tools:
 
 After running `npm run seed`, you can use these test accounts:
 
-- **Email**: `john.doe@example.com` / **Password**: `password123`
-- **Email**: `jane.smith@example.com` / **Password**: `password123`
-- **Email**: `mike.wilson@example.com` / **Password**: `password123`
+- **Email**: `john.doe@example.com` / **Password**: `TestRecEngine123!`
+- **Email**: `jane.smith@example.com` / **Password**: `TestRecEngine123!`
+- **Email**: `mike.wilson@example.com` / **Password**: `TestRecEngine123!`
 
 The seed data includes:
+
 - 15 real credit cards with complete reward structures
 - 3 test users with different preferences
 - Sample transactions for testing
@@ -208,32 +238,36 @@ The seed data includes:
 ### Development Workflow
 
 1. **Start databases**
+
    ```bash
    docker-compose up -d postgres redis
    ```
 
 2. **Backend development**
+
    ```bash
    cd backend
    npm run dev  # Hot reload enabled
    ```
 
 3. **Frontend development**
+
    ```bash
    cd frontend
    npm start    # Hot reload enabled
    ```
 
 4. **Database operations**
+
    ```bash
    # Reset database
    npm run migrate:rollback --all
    npm run migrate:latest
    npm run seed
-   
+
    # Create new migration
    npm run migrate:make -- create_new_table
-   
+
    # Create new seed file
    npm run seed:make -- new_seed_data
    ```
