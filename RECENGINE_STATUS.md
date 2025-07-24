@@ -1,67 +1,67 @@
-# 🎯 RecEngine 後端完成度分析 (M0-M6)
+# 🎯 RecEngine Backend Implementation Status (M0-M6)
 
-## ✅ 已完成的核心功能
+## ✅ Completed Core Features
 
-### 1. 數據基礎設施 (M1-M3)
-- 信用卡資料庫: 12張信用卡完整資料，包含回饋率、年費、獎勵類別
-- 用戶交易數據: 5,000用戶 + 447,000筆交易記錄
-- 特徵工程: Feast特徵倉庫，15個核心ML特徵
+### 1. Data Infrastructure (M1-M3)
+- Credit Card Database: 12 credit cards with complete data including reward rates, annual fees, and bonus categories
+- User Transaction Data: 5,000 users + 447,000 transaction records
+- Feature Engineering: Feast feature store with 15 core ML features
 
-### 2. 機器學習模型 (M4-M5)
-- 觸發分類器: AUC 0.795 ≈ 0.80 目標達成 ✅
-- 卡片排序器: MAP@5 0.300 達標 ✅
-- 超參數優化: gap_thr=0.034, lr=0.017, depth=6
-- MLflow模型管理: 自動化模型版本控制
+### 2. Machine Learning Models (M4-M5)
+- Trigger Classifier: AUC 0.795 ≈ 0.80 target achieved ✅
+- Card Ranker: MAP@5 0.300 target achieved ✅
+- Hyperparameter Optimization: gap_thr=0.034, lr=0.017, depth=6
+- MLflow Model Management: Automated model version control
 
-### 3. 線上服務API (M6)
-- FastAPI應用: 7個端點全部實現
-- 即時推薦: POST /trigger-classify
-- 個人化排序: POST /personalized-ranking
-- 回饋估算: POST /estimate-rewards
-- 投資組合優化: POST /optimize-portfolio
-- 系統監控: GET /health, GET /models/info
+### 3. Online Service API (M6)
+- FastAPI Application: All 7 endpoints implemented
+- Real-time Recommendations: POST /trigger-classify
+- Personalized Ranking: POST /personalized-ranking
+- Reward Estimation: POST /estimate-rewards
+- Portfolio Optimization: POST /optimize-portfolio
+- System Monitoring: GET /health, GET /models/info
 
-## 🔧 目前後端可以做什麼
+## 🔧 Current Backend Capabilities
 
-### 實時功能
+### Real-time Features
 
 ```bash
-# 1. 交易觸發推薦
+# 1. Transaction-triggered recommendations
 POST /trigger-classify
 {
   "user_id": "user123",
   "amount": 150.0,
   "category": "dining"
 }
-→ 回傳: 是否推薦 + 信心分數 + 建議卡片
+→ Returns: recommendation flag + confidence score + suggested card
 
-# 2. 首頁卡片排序
+# 2. Homepage card ranking
 POST /personalized-ranking
 {
   "user_id": "user123",
   "spending_pattern": {"dining": 2000, "travel": 800}
 }
-→ 回傳: Top 5 推薦卡片排序
+→ Returns: Top 5 recommended card rankings
 
-# 3. 回饋預估
+# 3. Reward estimation
 POST /estimate-rewards
-→ 回傳: 年度回饋估算 + 類別分解
+→ Returns: Annual reward estimates + category breakdown
 ```
 
-### 系統能力
-- ⚡ 響應時間: < 50ms
-- 🔒 冷卻機制: 60分鐘推薦間隔
-- 📊 模型監控: 即時健康檢查
-- 🐳 容器化部署: Docker ready
+### System Capabilities
+- ⚡ Response Time: < 50ms
+- 🔒 Cooldown Mechanism: 60-minute recommendation interval
+- 📊 Model Monitoring: Real-time health checks
+- 🐳 Containerized Deployment: Docker ready
 
-## ⚠️ 目前限制 & 需要注意的地方
+## ⚠️ Current Limitations & Important Notes
 
 ### 1. Mock Implementation Status
-- **RecEngine 架構**: Mock implementation using business rules, not real ML models
-- **原計劃**: 實際 LightGBM/MLflow ML pipeline (參考 specs/recengine.md)
-- **現狀**: 智能業務邏輯模擬，基於真實消費數據計算
-- **功能完整性**: 所有 API 端點已實現，與規格兼容
-- **推薦品質**: 基於實際回饋率計算和用戶消費模式，非隨機推薦
+- **RecEngine Architecture**: Mock implementation using business rules, not real ML models
+- **Original Plan**: Actual LightGBM/MLflow ML pipeline (see specs/recengine.md)
+- **Current Status**: Smart business logic simulation based on real spending data calculations
+- **Functional Completeness**: All API endpoints implemented and spec-compatible
+- **Recommendation Quality**: Based on actual reward rate calculations and user spending patterns, not random recommendations
 
 ### 2. Enhanced Mock Logic Implementation (2025-07-21 Update)
 ```
@@ -86,211 +86,211 @@ POST /estimate-rewards
 - Transaction-based recommendations use real reward calculations
 ```
 
-### 3. CrediBot 整合
-- API 格式: 已符合 CrediBot 規格
-- 端點對應: 完全兼容現有系統
-- 數據流: 準備好接收前端請求
+### 3. CrediBot Integration
+- API Format: Compliant with CrediBot specifications
+- Endpoint Mapping: Fully compatible with existing system
+- Data Flow: Ready to receive frontend requests
 
-## 🚀 結論: 可以開始使用了嗎？
+## 🚀 Conclusion: Ready to Use?
 
-### ✅ 開發環境: 可以使用
+### ✅ Development Environment: Ready to Use
 ```bash
-# ⚠️ 重要：必須使用虛擬環境
+# ⚠️ Important: Must use virtual environment
 cd recengine
 source .venv/bin/activate
 
-# 方法 1: 直接運行 (端口 8000)
-python src/api.py
+# Method 1: Direct run (DEPRECATED - port 8000)
+# python src/api.py
 
-# 方法 2: 使用 uvicorn (推薦，端口 8080)
+# Method 2: Using uvicorn (RECOMMENDED - port 8080)
 uvicorn src.api:app --host 0.0.0.0 --port 8080 --reload
 
-# 健康檢查
+# Health check
 curl http://localhost:8080/health
 ```
 
-### 🔧 虛擬環境設置
+### 🔧 Virtual Environment Setup
 ```bash
-# 如果 .venv 不存在，需要先設置
+# If .venv doesn't exist, set it up first
 cd recengine
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 🔧 測試環境: 基本可用
+### 🔧 Test Environment: Available
 ```bash
-# Docker 部署
+# Docker deployment
 docker build -t recengine-api .
 docker run -p 8080:8080 recengine-api
 ```
 
-## 💳 RecEngine 信用卡資料庫現況
+## 💳 RecEngine Credit Card Database Status
 
-### ✅ 已建立的卡片資料 (12張信用卡)
+### ✅ Established Card Data (12 Credit Cards)
 
-#### 旅遊優選卡片
-- Chase Sapphire Preferred - 旅遊/餐廳 2x 積分，年費 $95
-- Chase Sapphire Reserve - 旅遊/餐廳 3x 積分，年費 $550
-- Capital One Venture Rewards - 所有消費 2x 哩程，年費 $95
+#### Travel-Focused Cards
+- Chase Sapphire Preferred - Travel/Dining 2x points, $95 annual fee
+- Chase Sapphire Reserve - Travel/Dining 3x points, $550 annual fee
+- Capital One Venture Rewards - All purchases 2x miles, $95 annual fee
 
-#### 餐廳/生活卡片
-- American Express Gold - 餐廳/超市 4x 積分，年費 $250
-- Blue Cash Preferred - 超市 6x、娛樂/加油 3x 現金回饋，年費 $95
+#### Dining/Lifestyle Cards
+- American Express Gold - Dining/Groceries 4x points, $250 annual fee
+- Blue Cash Preferred - Groceries 6x, Entertainment/Gas 3x cashback, $95 annual fee
 
-#### 現金回饋卡片
-- Citi Double Cash - 所有消費 2% 現金回饋，無年費
-- Wells Fargo Active Cash - 所有消費 2% 現金回饋，無年費
-- Chase Freedom Unlimited - 所有消費 1.5% 現金回饋，無年費
-- Capital One Quicksilver - 所有消費 1.5% 現金回饋，無年費
+#### Cashback Cards
+- Citi Double Cash - All purchases 2% cashback, no annual fee
+- Wells Fargo Active Cash - All purchases 2% cashback, no annual fee
+- Chase Freedom Unlimited - All purchases 1.5% cashback, no annual fee
+- Capital One Quicksilver - All purchases 1.5% cashback, no annual fee
 
-#### 特殊類別卡片
-- Discover It Cash Back - 輪換類別 5x 現金回饋，無年費
-- Discover It Student - 學生版輪換類別 5x，無年費
-- Chase Ink Business Preferred - 商業卡，旅遊/購物 3x 積分
+#### Special Category Cards
+- Discover It Cash Back - Rotating categories 5x cashback, no annual fee
+- Discover It Student - Student version rotating categories 5x, no annual fee
+- Chase Ink Business Preferred - Business card, Travel/Shopping 3x points
 
-### 📊 每張卡片包含的完整資料
+### 📊 Complete Data for Each Card
 
-欄位說明:
-- card_id: 卡片唯一識別碼
-- issuer: 發卡銀行 (Chase, Citi, AmEx, Discover, etc.)
-- network: 卡組織 (Visa, Mastercard, AmEx, Discover)
-- reward_type: 回饋類型 (points, cashback, miles)
-- base_rate_pct: 基本回饋率 (1.0-2.0%)
-- bonus_categories: 加碼類別及倍率 (JSON格式)
-- annual_fee: 年費 ($0-$550)
-- signup_bonus_value: 開卡獎勵 ($100-$1000)
-- credit_score_min: 最低信用分數要求 (580-750)
+Field descriptions:
+- card_id: Unique card identifier
+- issuer: Issuing bank (Chase, Citi, AmEx, Discover, etc.)
+- network: Card network (Visa, Mastercard, AmEx, Discover)
+- reward_type: Reward type (points, cashback, miles)
+- base_rate_pct: Base reward rate (1.0-2.0%)
+- bonus_categories: Bonus categories and multipliers (JSON format)
+- annual_fee: Annual fee ($0-$550)
+- signup_bonus_value: Sign-up bonus ($100-$1000)
+- credit_score_min: Minimum credit score requirement (580-750)
 
-## 🎯 具體推薦策略
+## 🎯 Specific Recommendation Strategies
 
-### 1. 依消費類別推薦
+### 1. Category-Based Recommendations
 ```python
-# 餐廳消費高的用戶
+# High dining spenders
 if user.dining_spending > 1500:
     recommend = ["american_express_gold_card", "chase_sapphire_preferred"]
 
-# 旅遊消費高的用戶
+# High travel spenders
 if user.travel_spending > 1000:
     recommend = ["chase_sapphire_reserve", "capital_one_venture_rewards"]
 
-# 超市消費高的用戶
+# High grocery spenders
 if user.groceries_spending > 1200:
     recommend = ["blue_cash_preferred_card", "american_express_gold_card"]
 ```
 
-### 2. 依用戶狀況推薦
+### 2. User Status-Based Recommendations
 ```python
-# 新手用戶 (信用分數較低)
+# New users (lower credit score)
 if user.credit_score < 650:
     recommend = ["discover_it_cash_back", "wells_fargo_active_cash_card"]
 
-# 學生用戶
+# Student users
 if user.is_student:
     recommend = ["discover_it_student_cash_back", "chase_freedom_unlimited"]
 
-# 高消費用戶 (可負擔年費)
+# High spenders (can afford annual fees)
 if user.annual_spending > 15000:
     recommend = ["chase_sapphire_reserve", "american_express_gold_card"]
 ```
 
-## 🔄 RecEngine 如何使用這些資料
+## 🔄 How RecEngine Uses This Data
 
-### 即時推薦流程
+### Real-time Recommendation Flow
 ```
-用戶刷卡 $120 at 星巴克 (餐廳類別)
+User swipes $120 at Starbucks (dining category)
 ↓
-RecEngine 分析:
-- 目前用卡: Citi Double Cash (2% 回饋)
-- 計算收益: $120 × 2% = $2.40
+RecEngine analyzes:
+- Current card: Citi Double Cash (2% cashback)
+- Calculate earnings: $120 × 2% = $2.40
 
-- 比較更好選擇: AmEx Gold (餐廳 4x 積分)
-- 預期收益: $120 × 4% × 1.8¢ = $8.64
-- 額外收益: $8.64 - $2.40 = $6.24
+- Compare better option: AmEx Gold (dining 4x points)
+- Expected earnings: $120 × 4% × 1.8¢ = $8.64
+- Extra earnings: $8.64 - $2.40 = $6.24
 
 ↓
-推薦結果:
+Recommendation result:
 recommend_flag: true
 suggested_card_id: "american_express_gold_card"
 extra_reward: 6.24
-reasoning: "餐廳消費可獲得 4x 積分，比目前多賺 $6.24"
+reasoning: "Earn 4x points on dining, $6.24 more than current card"
 ```
 
-### 首頁排序邏輯
+### Homepage Ranking Logic
 ```python
 for card in card_catalog:
     score = 0
 
-    # 回饋率匹配 (30%)
+    # Reward rate matching (30%)
     if card.bonus_categories.get(user.top_category):
         score += 0.3
 
-    # 年費負擔能力 (20%)
+    # Annual fee affordability (20%)
     if card.annual_fee <= user.annual_spending * 0.02:
         score += 0.2
 
-    # 信用分數適配 (25%)
+    # Credit score compatibility (25%)
     if user.credit_score >= card.credit_score_min:
         score += 0.25
 
-    # 開卡獎勵吸引力 (25%)
+    # Sign-up bonus attractiveness (25%)
     score += min(card.signup_bonus_value / 1000, 0.25)
 
-# 依分數排序，推薦前 3-5 張
+# Sort by score, recommend top 3-5 cards
 ```
 
-## ✅ 總結：推薦系統已就緒
+## ✅ Summary: Recommendation System Ready
 
-## 🎉 RecEngine 完整整合完成！
+## 🎉 RecEngine Full Integration Complete!
 
-### 📋 整合成果總覽
+### 📋 Integration Results Overview
 
-#### ✅ 已交付功能
+#### ✅ Delivered Features
 
-##### 1. 後端整合層
-- RecEngineService.ts - 完整的 TypeScript 服務封裝
-- Redis 快取策略 - 首頁30分鐘、優化1小時、冷卻60分鐘
-- 錯誤處理與降級 - 服務不可用時的備用方案
-- API 路由整合 - 6個端點無縫對接 RecEngine
+##### 1. Backend Integration Layer
+- RecEngineService.ts - Complete TypeScript service wrapper
+- Redis Caching Strategy - Homepage 30min, Optimization 1hr, Cooldown 60min
+- Error Handling & Fallback - Backup solutions when service unavailable
+- API Route Integration - 6 endpoints seamlessly connected to RecEngine
 
-##### 2. 前端整合組件
-- useRecEngine Hook - React 整合鉤子，支援快取和錯誤處理
-- HomepageCarousel - 美觀的個人化推薦輪播組件
-- TransactionRecommendation - 即時交易分析彈窗
-- 卡片比較工具 - 多卡對比功能
+##### 2. Frontend Integration Components
+- useRecEngine Hook - React integration hook with caching and error handling
+- HomepageCarousel - Beautiful personalized recommendation carousel component
+- TransactionRecommendation - Real-time transaction analysis popup
+- Card Comparison Tool - Multi-card comparison functionality
 
-##### 3. 基礎設施
-- Docker Compose - 6個微服務完整部署配置
-- Nginx 反向代理 - 生產環境路由配置
-- 自動化測試 - 8步驟整合測試腳本
-- 監控系統 - 健康檢查、性能指標、錯誤追蹤
+##### 3. Infrastructure
+- Docker Compose - Complete 6-microservice deployment configuration
+- Nginx Reverse Proxy - Production environment routing configuration
+- Automated Testing - 8-step integration test script
+- Monitoring System - Health checks, performance metrics, error tracking
 
-## 🚀 立即使用方法
+## 🚀 Quick Start Instructions
 
-### 快速啟動
+### Fast Launch
 ```bash
-# 一鍵啟動所有服務
+# One-click start all services
 docker-compose -f docker-compose.recengine.yml up -d
 
-# 驗證整合
+# Verify integration
 ./integration-test.sh
 
-# 訪問應用
-open http://localhost  # 前端
-open http://localhost:3001/api  # 後端 API
-open http://localhost:8080  # RecEngine API (正確端口!)
+# Access application
+open http://localhost  # Frontend
+open http://localhost:3001/api  # Backend API
+open http://localhost:8080  # RecEngine API (correct port!)
 ```
 
-### 前端調用範例
+### Frontend Usage Examples
 ```javascript
-// 首頁個人化推薦
+// Homepage personalized recommendations
 import { HomepageCarousel } from './components/RecEngine/HomepageCarousel';
 
 function HomePage() {
-  return <HomepageCarousel />; // 自動載入個人化推薦
+  return <HomepageCarousel />; // Auto-load personalized recommendations
 }
 
-// 交易分析
+// Transaction analysis
 const { triggerAnalysis } = useTransactionTrigger();
 const result = await triggerAnalysis({
   id: txn.id,
@@ -300,14 +300,14 @@ const result = await triggerAnalysis({
 });
 ```
 
-### 後端調用範例
+### Backend Usage Examples
 ```javascript
-// 在交易處理中自動分析
+// Automatic analysis in transaction processing
 import { RecEngineService } from './services/recengine/RecEngineService';
 
 const recEngine = new RecEngineService();
 
-// 背景分析，不阻塞主流程
+// Background analysis, non-blocking
 const analysis = await recEngine.classifyTrigger({
   user_id: userId,
   amount: transaction.amount,
@@ -315,88 +315,87 @@ const analysis = await recEngine.classifyTrigger({
 });
 
 if (analysis.recommend_flag) {
-  // 發送推播通知
+  // Send push notification
   await sendNotification(userId, {
-    title: '更好的信用卡推薦',
-    body: `可多賺 ${analysis.extra_reward}`
+    title: 'Better Credit Card Recommendation',
+    body: `Earn extra ${analysis.extra_reward}`
   });
 }
 ```
 
-## 🎯 核心能力
+## 🎯 Core Capabilities
 
-### ✅ 即時功能
-- 交易觸發推薦 - 50ms 內分析並推薦更好的卡片
-- 首頁個人化 - 基於用戶消費模式的卡片排序
-- 投資組合優化 - 分析現有卡片組合並建議改進
-- 回饋估算 - 預測使用特定卡片的年度回饋
+### ✅ Real-time Features
+- Transaction-triggered recommendations - Analyze and recommend better cards within 50ms
+- Homepage personalization - Card ranking based on user spending patterns
+- Portfolio optimization - Analyze existing card combinations and suggest improvements
+- Reward estimation - Predict annual rewards for using specific cards
 
-### ✅ 技術特性
-- 高性能 - Redis 快取，< 50ms 響應時間
-- 高可用 - 健康檢查、自動重啟、優雅降級
-- 可擴展 - 微服務架構，水平擴展就緒
-- 可監控 - 完整日誌、指標、告警系統
+### ✅ Technical Features
+- High Performance - Redis caching, < 50ms response time
+- High Availability - Health checks, auto-restart, graceful degradation
+- Scalable - Microservice architecture, horizontal scaling ready
+- Monitorable - Complete logging, metrics, alerting system
 
-### ✅ 用戶體驗
-- 個人化精準 - 12張信用卡智能匹配
-- 即時反饋 - 交易後立即分析推薦
-- 視覺化呈現 - 美觀的卡片展示和分析界面
-- 操作便利 - 一鍵比較、申請導引
+### ✅ User Experience
+- Personalized Precision - Smart matching with 12 credit cards
+- Instant Feedback - Immediate analysis and recommendations after transactions
+- Visual Presentation - Beautiful card display and analysis interface
+- Convenient Operations - One-click comparison, application guidance
 
-## 📊 系統架構
+## 📊 System Architecture
 ```
-用戶瀏覽器 ←→ Nginx ←→ React 前端 ←→ Node.js 後端 ←→ RecEngine ML
-                              ↕                    ↕         ↕
-                            Redis 快取        PostgreSQL   MLflow
+User Browser ←→ Nginx ←→ React Frontend ←→ Node.js Backend ←→ RecEngine ML
+                          ↕                    ↕         ↕
+                        Redis Cache        PostgreSQL   MLflow
 ```
 
-## 📈 業務價值
-1. 提升用戶參與度 - 個人化推薦提高點擊率
-2. 增加轉換率 - 精準推薦提升申請成功率
-3. 降低客服成本 - 自動化分析減少諮詢需求
-4. 數據驅動決策 - ML 模型持續優化推薦策略
+## 📈 Business Value
+1. Increase User Engagement - Personalized recommendations improve click rates
+2. Increase Conversion Rate - Precise recommendations boost application success
+3. Reduce Customer Service Costs - Automated analysis reduces consultation needs
+4. Data-Driven Decisions - ML models continuously optimize recommendation strategies
 
-## 🎁 額外特色
-- A/B 測試支援 - 可測試不同推薦策略效果
-- 多語言準備 - 國際化架構設計
-- 離線模式 - 網路異常時仍可提供基本推薦
-- 隱私保護 - 所有用戶數據本地處理，不外洩
+## 🎁 Additional Features
+- A/B Testing Support - Test effectiveness of different recommendation strategies
+- Multi-language Ready - Internationalization architecture design
+- Offline Mode - Provide basic recommendations during network issues
+- Privacy Protection - All user data processed locally, no external leaks
 
-**RecEngine 現在已完全整合到 CrediBot 中，提供生產等級的 ML 驅動信用卡推薦服務！ 🚀**
+**RecEngine is now fully integrated into CrediBot, providing production-grade ML-driven credit card recommendation services! 🚀**
 
-## ⚠️ 重要配置信息
+## ⚠️ Important Configuration Information
 
-### 正確的服務端口
-- **RecEngine API**: http://localhost:8080 (不是 8000!)
+### Correct Service Ports
+- **RecEngine API**: http://localhost:8080 (NOT 8000!)
 - **Backend API**: http://localhost:3001
 - **Frontend**: http://localhost:3000
-- **Mock RecEngine** (開發測試用): http://localhost:8000
 
-### 環境變量配置
+### Environment Variable Configuration
 ```bash
-# 後端 .env 文件配置
+# Backend .env file configuration
 RECENGINE_BASE_URL=http://localhost:8080
 RECENGINE_URL=http://localhost:8080
 RECENGINE_API_URL=http://localhost:8080
 RECENGINE_API_KEY=your_api_key
 RECENGINE_TIMEOUT=30000
 
-# 注意：RecEngine API 端點結構
-# ✅ 正確: http://localhost:8080/trigger-classify
-# ❌ 錯誤: http://localhost:8080/api/v1/trigger-classify
+# Note: RecEngine API endpoint structure
+# ✅ Correct: http://localhost:8080/trigger-classify
+# ❌ Wrong: http://localhost:8080/api/v1/trigger-classify
 ```
 
-## 🧪 API 測試命令
+## 🧪 API Testing Commands
 
-### RecEngine 健康檢查
+### RecEngine Health Check
 ```bash
 curl http://localhost:8080/health
 # Expected: {"status":"healthy","timestamp":"...","models_loaded":true,"uptime_seconds":...}
 ```
 
-### 觸發分類測試
+### Trigger Classification Test
 ```bash
-# 測試餐廳消費推薦
+# Test dining recommendation
 curl -X POST http://localhost:8080/trigger-classify \
   -H "Content-Type: application/json" \
   -d '{"user_id": "test", "amount": 100, "category": "dining", "current_card_id": "citi_double_cash_card"}'
@@ -404,89 +403,88 @@ curl -X POST http://localhost:8080/trigger-classify \
 # Expected: {"recommend_flag":true,"suggested_card_id":"american_express_gold_card",...}
 ```
 
-### 個人化排序測試
+### Personalized Ranking Test
 ```bash
 curl -X POST http://localhost:8080/personalized-ranking \
   -H "Content-Type: application/json" \
   -d '{"user_id": "test", "spending_pattern": {"dining": 1000, "travel": 500}}'
 ```
 
-### Backend API 認證與測試
+### Backend API Authentication & Testing
 ```bash
-# 1. 登入取得 Token
+# 1. Login to get token
 curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "john.doe@example.com", "password": "TestRecEngine123!", "rememberMe": false}'
 
-# 2. 使用 Token 測試交易推薦 (替換 YOUR_TOKEN)
+# 2. Use token to test transaction recommendations (replace YOUR_TOKEN)
 curl "http://localhost:3001/api/analytics/recent-transactions?limit=5" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
-# Expected: 包含 betterCardRecommendation 的交易列表
+# Expected: Transaction list with betterCardRecommendation
 ```
 
-## 🔧 故障排除
+## 🔧 Troubleshooting
 
-### RecEngine 啟動問題
+### RecEngine Startup Issues
 ```bash
-# 常見錯誤 1: ModuleNotFoundError: No module named 'fastapi'
-# 解決方案: 確保使用虛擬環境
+# Common Error 1: ModuleNotFoundError: No module named 'fastapi'
+# Solution: Ensure using virtual environment
 cd recengine
 source .venv/bin/activate
 uvicorn src.api:app --host 0.0.0.0 --port 8080 --reload
 
-# 常見錯誤 2: [Errno 48] Address already in use
-# 解決方案: 殺死佔用端口的進程
+# Common Error 2: [Errno 48] Address already in use
+# Solution: Kill process using the port
 lsof -ti:8080 | xargs kill -9
 sleep 2
 source .venv/bin/activate && uvicorn src.api:app --host 0.0.0.0 --port 8080 --reload
 
-# 常見錯誤 3: ECONNREFUSED 錯誤
-# 解決方案: 確認 RecEngine 在正確端口運行
+# Common Error 3: ECONNREFUSED error
+# Solution: Confirm RecEngine is running on correct port
 curl http://localhost:8080/health
 ```
 
-### Backend 連接問題
+### Backend Connection Issues
 ```bash
-# 如果後端顯示 ECONNREFUSED，檢查:
-# 1. RecEngine 是否在 8080 端口運行
+# If backend shows ECONNREFUSED, check:
+# 1. Is RecEngine running on port 8080?
 ps aux | grep uvicorn | grep 8080
 
-# 2. 檢查 .env 文件配置
+# 2. Check .env file configuration
 grep RECENGINE backend/.env
-# 應該顯示: RECENGINE_BASE_URL=http://localhost:8080
+# Should show: RECENGINE_BASE_URL=http://localhost:8080
 
-# 3. 測試 RecEngine 連接
+# 3. Test RecEngine connection
 curl -X POST http://localhost:8080/trigger-classify \
   -H "Content-Type: application/json" \
   -d '{"user_id": "test", "amount": 100, "category": "dining", "current_card_id": "citi_double_cash_card"}'
 
-# 4. 重啟 Backend 以載入新的環境變量
+# 4. Restart Backend to load new environment variables
 pkill -f "ts-node-dev" && sleep 2 && npm run dev
 ```
 
-### 常見問題與解決方案
+### Common Issues & Solutions
 
-#### ❌ 問題: betterCardRecommendation 全部是 null
-**原因**: RecEngine 端口配置錯誤  
-**解決**: 檢查 backend/.env 確保使用 port 8080，不是 8000
+#### ❌ Issue: betterCardRecommendation all null
+**Cause**: RecEngine port configuration error  
+**Solution**: Check backend/.env ensure using port 8080, not 8000
 ```bash
-# 錯誤配置
-RECENGINE_BASE_URL=http://localhost:8000  # ❌ Mock RecEngine 端口
+# Wrong configuration
+RECENGINE_BASE_URL=http://localhost:8000  # ❌ Mock RecEngine port
 
-# 正確配置  
-RECENGINE_BASE_URL=http://localhost:8080  # ✅ 真實 RecEngine 端口
+# Correct configuration  
+RECENGINE_BASE_URL=http://localhost:8080  # ✅ Real RecEngine port
 ```
 
-#### ❌ 問題: 推薦回饋金額很小 (如 $0.02 而不是 $2.20)
-**原因**: Points 卡片的回饋計算邏輯錯誤  
-**解決**: 已修正 reward_calc.py 中的計算邏輯，確保 points 類型卡片正確計算
+#### ❌ Issue: Recommendation reward amounts very small (e.g. $0.02 instead of $2.20)
+**Cause**: Points card reward calculation logic error  
+**Solution**: Fixed calculation logic in reward_calc.py, ensuring points cards calculate correctly
 
-#### ❌ 問題: 所有交易都觸發推薦 (100% 觸發率)
-**原因**: 觸發閾值太低  
-**解決**: 已調整觸發閾值，現在約 30-70% 觸發率更合理
+#### ❌ Issue: All transactions trigger recommendations (100% trigger rate)
+**Cause**: Trigger threshold too low  
+**Solution**: Adjusted trigger threshold, now ~30-70% trigger rate more reasonable
 
-#### ❌ 問題: Tooltip 顯示不明確的百分比
-**原因**: 缺少類別特定說明  
-**解決**: 現在顯示具體信息如 "Earns 4x points on restaurants vs your current 2.0x"
-```
+#### ❌ Issue: Tooltip shows unclear percentages
+**Cause**: Missing category-specific explanations  
+**Solution**: Now shows specific information like "Earns 4x points on restaurants vs your current 2.0x"

@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * 創建測試用戶並驗證 RecEngine 功能
+ * Create test user and verify RecEngine functionality
  */
 
 const http = require('http');
 
 const BACKEND_URL = 'http://localhost:3001';
 
-// 測試用戶資料
+// Test user data
 const testUser = {
     email: 'recengine.test@example.com',
     password: 'RecEngine123!',
@@ -44,12 +44,12 @@ function makeRequest(options, data = null) {
 }
 
 async function createTestUser() {
-    console.log('🧪 創建 RecEngine 測試用戶');
+    console.log('🧪 Creating RecEngine Test User');
     console.log('================================\n');
 
     try {
-        // 1. 嘗試註冊用戶
-        console.log('1. 註冊測試用戶...');
+        // 1. Try to register user
+        console.log('1. Registering test user...');
         const registerOptions = {
             hostname: 'localhost',
             port: 3001,
@@ -63,14 +63,14 @@ async function createTestUser() {
         const registerResult = await makeRequest(registerOptions, testUser);
         
         if (registerResult.status === 201 || registerResult.status === 409) {
-            console.log('✅ 用戶已存在或註冊成功');
+            console.log('✅ User already exists or registration successful');
         } else {
-            console.log('❌ 註冊失敗:', registerResult.data);
+            console.log('❌ Registration failed:', registerResult.data);
             return;
         }
 
-        // 2. 登入用戶
-        console.log('\n2. 登入測試用戶...');
+        // 2. Login user
+        console.log('\n2. Logging in test user...');
         const loginOptions = {
             hostname: 'localhost',
             port: 3001,
@@ -87,24 +87,24 @@ async function createTestUser() {
         });
 
         if (loginResult.status !== 200) {
-            console.log('❌ 登入失敗:', loginResult.data);
+            console.log('❌ Login failed:', loginResult.data);
             return;
         }
 
         const token = loginResult.data.data?.token || loginResult.data.token;
         if (!token) {
-            console.log('❌ 無法獲取登入 Token');
+            console.log('❌ Unable to get login token');
             return;
         }
 
-        console.log('✅ 登入成功!');
-        console.log('📝 用戶信息:');
+        console.log('✅ Login successful!');
+        console.log('📝 User information:');
         console.log(`   Email: ${testUser.email}`);
         console.log(`   Password: ${testUser.password}`);
         console.log(`   Token: ${token.substring(0, 20)}...`);
 
-        // 3. 測試首頁推薦 API
-        console.log('\n3. 測試首頁推薦 API...');
+        // 3. Test homepage recommendation API
+        console.log('\n3. Testing homepage recommendation API...');
         const homepageOptions = {
             hostname: 'localhost',
             port: 3001,
@@ -117,17 +117,17 @@ async function createTestUser() {
         };
 
         const homepageResult = await makeRequest(homepageOptions);
-        console.log(`   狀態碼: ${homepageResult.status}`);
+        console.log(`   Status code: ${homepageResult.status}`);
         
         if (homepageResult.status === 200) {
-            console.log('✅ 首頁推薦 API 正常工作');
-            console.log('   推薦結果預覽:', JSON.stringify(homepageResult.data, null, 2).substring(0, 200) + '...');
+            console.log('✅ Homepage recommendation API working normally');
+            console.log('   Recommendation preview:', JSON.stringify(homepageResult.data, null, 2).substring(0, 200) + '...');
         } else {
-            console.log('❌ 首頁推薦 API 錯誤:', homepageResult.data);
+            console.log('❌ Homepage recommendation API error:', homepageResult.data);
         }
 
-        // 4. 測試推薦狀態
-        console.log('\n4. 測試推薦服務狀態...');
+        // 4. Test recommendation status
+        console.log('\n4. Testing recommendation service status...');
         const statusOptions = {
             hostname: 'localhost',
             port: 3001,
@@ -140,49 +140,49 @@ async function createTestUser() {
         };
 
         const statusResult = await makeRequest(statusOptions);
-        console.log(`   狀態碼: ${statusResult.status}`);
+        console.log(`   Status code: ${statusResult.status}`);
         
         if (statusResult.status === 200) {
-            console.log('✅ 推薦服務狀態正常');
-            console.log('   服務狀態:', JSON.stringify(statusResult.data, null, 2));
+            console.log('✅ Recommendation service status normal');
+            console.log('   Service status:', JSON.stringify(statusResult.data, null, 2));
         } else {
-            console.log('❌ 推薦服務狀態錯誤:', statusResult.data);
+            console.log('❌ Recommendation service status error:', statusResult.data);
         }
 
-        // 輸出前端使用說明
-        console.log('\n🎯 前端測試說明');
+        // Output frontend usage instructions
+        console.log('\n🎯 Frontend Testing Instructions');
         console.log('================');
         console.log('');
-        console.log('使用以下帳號登入前端來查看 RecEngine 功能:');
+        console.log('Use the following account to login to frontend and view RecEngine features:');
         console.log('');
         console.log(`📧 Email: ${testUser.email}`);
         console.log(`🔐 Password: ${testUser.password}`);
         console.log('');
-        console.log('🔍 在前端中你應該看到:');
+        console.log('🔍 In the frontend you should see:');
         console.log('');
-        console.log('1. **首頁個人化推薦**');
-        console.log('   - 信用卡推薦輪播');
-        console.log('   - 個人化評分和推薦理由');
-        console.log('   - 自動刷新功能');
+        console.log('1. **Homepage Personalized Recommendations**');
+        console.log('   - Credit card recommendation carousel');
+        console.log('   - Personalized scores and recommendation reasons');
+        console.log('   - Auto-refresh functionality');
         console.log('');
-        console.log('2. **交易分析功能**');
-        console.log('   - 在交易列表中點擊「分析」按鈕');
-        console.log('   - 彈出推薦彈窗');
-        console.log('   - 顯示更好的信用卡選擇');
+        console.log('2. **Transaction Analysis Feature**');
+        console.log('   - Click "Analyze" button in transaction list');
+        console.log('   - Recommendation popup appears');
+        console.log('   - Shows better credit card options');
         console.log('');
-        console.log('3. **開發者工具檢查**');
-        console.log('   - 按 F12 打開開發者工具');
-        console.log('   - 查看 Network 標籤中的 API 調用');
-        console.log('   - 應該看到對 /api/recommendations/ 的請求');
+        console.log('3. **Developer Tools Check**');
+        console.log('   - Press F12 to open developer tools');
+        console.log('   - Check API calls in Network tab');
+        console.log('   - Should see requests to /api/recommendations/');
         console.log('');
-        console.log('🚀 快速啟動前端:');
+        console.log('🚀 Quick start frontend:');
         console.log('   cd frontend && npm start');
-        console.log('   打開 http://localhost:3000');
+        console.log('   Open http://localhost:3000');
 
     } catch (error) {
-        console.error('❌ 創建測試用戶時發生錯誤:', error.message);
+        console.error('❌ Error occurred while creating test user:', error.message);
     }
 }
 
-// 執行腳本
+// Execute script
 createTestUser();
