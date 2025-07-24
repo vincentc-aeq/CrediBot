@@ -18,7 +18,43 @@ A credit card recommendations system that analyzes user spending patterns and pr
 
 ## Development Commands
 
-### Docker Development (Recommended)
+### Local Development Setup (Recommended)
+
+For better debugging experience, run services locally with Docker only for databases:
+
+```bash
+# 1. Start Database Services (PostgreSQL and Redis)
+docker-compose up -d postgres redis
+
+# 2. Backend Service
+cd backend
+npm install
+cp .env.example .env
+# Edit .env to ensure RECENGINE_BASE_URL=http://localhost:8080
+npm run migrate
+npm run seed
+npm run dev
+
+# 3. Frontend Service
+cd frontend
+npm install --legacy-peer-deps  # Note: requires --legacy-peer-deps flag
+npm start
+
+# 4. RecEngine ML Service
+cd recengine
+source .venv/bin/activate
+# If .venv doesn't exist: python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+uvicorn src.api:app --host 0.0.0.0 --port 8080 --reload
+```
+
+### Service URLs
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
+- RecEngine API: http://localhost:8080
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+
+### Docker Development (Full Stack)
 
 ```bash
 # Start all services
@@ -88,8 +124,9 @@ curl -X POST http://localhost:3001/api/auth/login \
 export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 # Available test accounts:
-# Email: john.doe@example.com
-# Password: TestRecEngine123!
+# john.doe@example.com / TestRecEngine123!
+# jane.smith@example.com / TestRecEngine123!
+# mike.wilson@example.com / TestRecEngine123!
 ```
 
 ### Recent Transactions API

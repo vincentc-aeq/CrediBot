@@ -49,26 +49,26 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取首頁個人化推薦
+   * Get homepage personalized recommendations
    */
   async getHomepageRecommendations(
     userId: string,
     maxResults: number = 6
   ): Promise<HomepageRecommendations> {
     try {
-      // 建立用戶檔案
+      // Build user profile
       const userProfile = await this.buildUserProfile(userId);
       
-      // 獲取上下文資訊
+      // Get contextual information
       const contextualFactors = await this.buildContextualData(userId);
       
-      // 獲取候選信用卡
+      // Get candidate credit cards
       const candidateCards = await this.getCandidateCards(userId);
       
-      // 獲取用戶當前持有的信用卡ID列表
+      // Get user's current credit card ID list
       const userCards = await this.getUserCardIds(userId);
       
-      // 呼叫 RecEngine Personalized Ranker
+      // Call RecEngine Personalized Ranker
       const request: PersonalizedRankerRequest = {
         user_id: userId,
         user_cards: userCards,
@@ -82,7 +82,7 @@ export class PersonalizedRankerService {
 
       const response = await this.recEngineClient.personalizedRanking(request);
 
-      // 分類推薦結果
+      // Categorize recommendation results
       const categorizedRecommendations = this.categorizeRecommendations(
         response.ranked_cards,
         maxResults
@@ -117,7 +117,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取特定類別的個人化推薦
+   * Get personalized recommendations for specific category
    */
   async getCategoryRecommendations(
     userId: string,
@@ -128,7 +128,7 @@ export class PersonalizedRankerService {
       const userProfile = await this.buildUserProfile(userId);
       const contextualFactors = await this.buildContextualData(userId);
       
-      // 篩選特定類別的信用卡
+      // Filter credit cards by specific category
       const allCards = await creditCardRepository.findActiveCards();
       const categoryCards = allCards.filter(card => 
         this.cardMatchesCategory(card, category)
@@ -156,7 +156,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取相似用戶推薦
+   * Get similar user recommendations
    */
   async getSimilarUserRecommendations(
     userId: string,
@@ -169,10 +169,10 @@ export class PersonalizedRankerService {
     try {
       const userProfile = await this.buildUserProfile(userId);
       
-      // 獲取所有候選卡片
+      // Get all candidate cards
       const candidateCards = await this.getCandidateCards(userId);
       
-      // 使用協作過濾的上下文
+      // Use collaborative filtering context
       const contextualFactors: ContextualData = {
         ...await this.buildContextualData(userId),
         userState: 'seeking_similar_recommendations'
@@ -189,7 +189,7 @@ export class PersonalizedRankerService {
 
       return {
         recommendations: response.ranked_cards,
-        similarUserProfiles: ['similar_user_1', 'similar_user_2'], // 這應該從 ML 服務返回
+        similarUserProfiles: ['similar_user_1', 'similar_user_2'], // This should be returned from ML service
         confidence: response.diversity_score
       };
 
@@ -204,7 +204,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 重新排序現有推薦
+   * Re-rank existing recommendations
    */
   async reRankRecommendations(
     userId: string,
@@ -241,7 +241,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取推薦解釋
+   * Get recommendation explanation
    */
   async getRecommendationExplanation(
     userId: string,
@@ -257,7 +257,7 @@ export class PersonalizedRankerService {
     generalScore: number;
   }> {
     try {
-      // 獲取單張卡片的個人化推薦
+      // Get personalized recommendation for single card
       const recommendations = await this.reRankRecommendations(userId, [cardId]);
       
       if (recommendations.length === 0) {
@@ -266,10 +266,10 @@ export class PersonalizedRankerService {
 
       const recommendation = recommendations[0];
       
-      // 分析影響因素
+      // Analyze influencing factors
       const factorsInfluencing = await this.analyzeInfluencingFactors(userId, cardId);
       
-      // 獲取一般分數（非個人化）
+      // Get general score (non-personalized)
       const generalScore = await this.getGeneralCardScore(cardId);
 
       return {
@@ -290,7 +290,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 建立用戶檔案
+   * Build user profile
    */
   private async buildUserProfile(userId: string): Promise<UserProfile> {
     const user = await userRepository.findById(userId);
@@ -319,7 +319,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 建立上下文資料
+   * Build contextual data
    */
   private async buildContextualData(userId: string): Promise<ContextualData> {
     const now = new Date();
@@ -340,7 +340,7 @@ export class PersonalizedRankerService {
     else if (month >= 8 && month <= 10) season = 'fall';
     else season = 'winter';
 
-    // 獲取市場趨勢
+    // Get market trends
     const marketTrends = await this.getCurrentMarketTrends();
 
     return {
@@ -352,7 +352,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取用戶當前持有的信用卡ID列表
+   * Get user's current credit card ID list
    */
   private async getUserCardIds(userId: string): Promise<string[]> {
     const userCards = await userCardRepository.findUserCardsWithDetails(userId);
@@ -360,10 +360,10 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取候選信用卡
+   * Get candidate credit cards
    */
   private async getCandidateCards(userId: string): Promise<CreditCard[]> {
-    // 獲取用戶當前沒有的活躍信用卡
+    // Get active credit cards that user doesn't currently have
     const allActiveCards = await creditCardRepository.findActiveCards();
     const userCards = await userCardRepository.findUserCardsWithDetails(userId);
     const userCardIds = new Set(userCards.map(uc => uc.creditCardId));
@@ -372,7 +372,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 分類推薦結果
+   * Categorize recommendation results
    */
   private categorizeRecommendations(
     recommendations: PersonalizedRecommendation[],
@@ -382,20 +382,20 @@ export class PersonalizedRankerService {
     trending: PersonalizedRecommendation[];
     personalized: PersonalizedRecommendation[];
   } {
-    // 按分數排序
+    // Sort by score
     const sorted = [...recommendations].sort((a, b) => b.ranking_score - a.ranking_score);
 
-    // 特色推薦：高分且有特殊優勢的卡片
+    // Featured recommendations: high-score cards with special advantages
     const featured = sorted
       .filter(rec => rec.ranking_score > 0.8)
       .slice(0, maxPerCategory);
 
-    // 趨勢推薦：市場熱門或新推出的卡片
+    // Trending recommendations: market popular or newly launched cards
     const trending = sorted
       .filter(rec => rec.reason.includes('trending') || rec.reason.includes('popular'))
       .slice(0, maxPerCategory);
 
-    // 個人化推薦：剩餘的高分推薦
+    // Personalized recommendations: remaining high-score recommendations
     const used = new Set([...featured.map(r => r.card_id), ...trending.map(r => r.card_id)]);
     const personalized = sorted
       .filter(rec => !used.has(rec.card_id))
@@ -405,10 +405,10 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 檢查卡片是否符合類別
+   * Check if card matches category
    */
   private cardMatchesCategory(card: CreditCard, category: string): boolean {
-    // 根據卡片類型和獎勵結構判斷
+    // Check based on card type and reward structure
     if (card.cardType.toLowerCase().includes(category.toLowerCase())) {
       return true;
     }
@@ -423,7 +423,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 根據 IDs 獲取信用卡
+   * Get credit cards by IDs
    */
   private async getCardsByIds(cardIds: string[]): Promise<CreditCard[]> {
     const cards: CreditCard[] = [];
@@ -437,18 +437,18 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 計算消費模式
+   * Calculate spending patterns
    */
   private async calculateSpendingPatterns(userId: string) {
     try {
-      // 獲取過去6個月的交易記錄
+      // Get transaction records from past 6 months
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
       
       const transactions = await transactionRepository.findByUserIdSince(userId, sixMonthsAgo);
       
       if (!transactions || transactions.length === 0) {
-        // 沒有交易記錄時返回默認模式
+        // Return default pattern when no transaction records
         return {
           totalMonthlySpending: 3000,
           categorySpending: {
@@ -463,7 +463,7 @@ export class PersonalizedRankerService {
         };
       }
 
-      // 計算各類別消費總額
+      // Calculate total spending by category
       const categoryTotals: Record<string, number> = {};
       let totalAmount = 0;
       let totalCount = 0;
@@ -477,19 +477,19 @@ export class PersonalizedRankerService {
         totalCount++;
       });
 
-      // 計算月平均
+      // Calculate monthly average
       const monthsOfData = Math.max(1, (new Date().getTime() - sixMonthsAgo.getTime()) / (1000 * 60 * 60 * 24 * 30));
       const totalMonthlySpending = totalAmount / monthsOfData;
       const transactionFrequency = totalCount / monthsOfData;
       const averageTransactionAmount = totalCount > 0 ? totalAmount / totalCount : 0;
 
-      // 轉換為月平均類別消費
+      // Convert to monthly average spending by category
       const categorySpending: Record<string, number> = {};
       Object.keys(categoryTotals).forEach(category => {
         categorySpending[category] = categoryTotals[category] / monthsOfData;
       });
 
-      // 確保有基本類別
+      // Ensure basic categories exist
       const requiredCategories = ['dining', 'groceries', 'gas', 'travel', 'other'];
       requiredCategories.forEach(category => {
         if (!categorySpending[category]) {
@@ -507,7 +507,7 @@ export class PersonalizedRankerService {
     } catch (error) {
       console.error('Error calculating spending patterns:', error);
       
-      // 錯誤時返回默認模式
+      // Return default pattern on error
       return {
         totalMonthlySpending: 3000,
         categorySpending: {
@@ -524,10 +524,10 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取當前市場趨勢
+   * Get current market trends
    */
   private async getCurrentMarketTrends(): Promise<string[]> {
-    // 這裡可以從外部 API 或數據庫獲取市場趨勢
+    // Can get market trends from external API or database
     const currentMonth = new Date().getMonth();
     
     if (currentMonth >= 10 || currentMonth <= 1) {
@@ -540,7 +540,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取應用的篩選條件
+   * Get applied filter criteria
    */
   private getAppliedFilters(userProfile: UserProfile): string[] {
     const filters: string[] = [];
@@ -561,7 +561,7 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 獲取個人化因素
+   * Get personalization factors
    */
   private getPersonalizationFactors(userProfile: UserProfile, contextualData: ContextualData): string[] {
     const factors: string[] = [];
@@ -582,50 +582,50 @@ export class PersonalizedRankerService {
   }
 
   /**
-   * 分析影響因素
+   * Analyze influencing factors
    */
   private async analyzeInfluencingFactors(userId: string, cardId: string) {
-    // 這應該從 ML 服務獲取詳細的影響因素分析
+    // This should get detailed influencing factor analysis from ML service
     return [
       {
         factor: 'spending_pattern_match',
         weight: 0.35,
-        description: '您的消費模式與此卡的獎勵結構高度匹配'
+        description: 'Your spending pattern highly matches this card\'s reward structure'
       },
       {
         factor: 'reward_optimization',
         weight: 0.25,
-        description: '此卡可顯著提升您的獎勵收益'
+        description: 'This card can significantly improve your reward earnings'
       },
       {
         factor: 'fee_value_ratio',
         weight: 0.20,
-        description: '年費與預期收益比例合理'
+        description: 'Annual fee to expected benefit ratio is reasonable'
       },
       {
         factor: 'similar_user_preference',
         weight: 0.20,
-        description: '類似用戶對此卡評價良好'
+        description: 'Similar users rate this card highly'
       }
     ];
   }
 
   /**
-   * 獲取一般卡片分數
+   * Get general card score
    */
   private async getGeneralCardScore(cardId: string): Promise<number> {
-    // 基於市場數據的一般分數
+    // General score based on market data
     const card = await creditCardRepository.findById(cardId);
     if (!card) return 0;
 
-    // 簡化的分數計算
-    let score = 0.5; // 基礎分數
+    // Simplified score calculation
+    let score = 0.5; // Base score
 
-    // 根據年費調整
+    // Adjust based on annual fee
     if (card.annualFee === 0) score += 0.2;
     else if (card.annualFee > 500) score -= 0.1;
 
-    // 根據獎勵結構調整
+    // Adjust based on reward structure
     if (card.rewardStructure && card.rewardStructure.length > 0) {
       const maxReward = Math.max(...card.rewardStructure.map(r => r.rewardRate));
       score += Math.min(0.3, maxReward / 10);

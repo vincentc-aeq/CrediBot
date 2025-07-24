@@ -47,14 +47,14 @@ export interface PersonalizationContext {
 
 export class HomepageRecommendationService {
   /**
-   * 生成完整的首頁推薦布局
+   * Generate complete homepage recommendation layout
    */
   async generateHomepageLayout(userId: string): Promise<HomepageLayout> {
     try {
-      // 建立個人化上下文
+      // Build personalization context
       const personalizationContext = await this.buildPersonalizationContext(userId);
 
-      // 並行獲取不同類型的推薦
+      // Get different types of recommendations in parallel
       const [
         heroRecommendation,
         featuredRecommendations,
@@ -80,32 +80,32 @@ export class HomepageRecommendationService {
     } catch (error) {
       console.error('Error generating homepage layout:', error);
       
-      // 返回降級版本
+      // Return degraded version
       return await this.getDegradedHomepageLayout(userId);
     }
   }
 
   /**
-   * 獲取首頁推薦（主要方法）
+   * Get homepage recommendations (main method)
    */
   async getHomepageRecommendations(request: RecommendationRequest): Promise<RecommendationResult> {
     try {
       const userId = request.userId;
       const maxResults = request.options?.maxResults || 6;
 
-      // 建立個人化上下文
+      // Build personalization context
       const personalizationContext = await this.buildPersonalizationContext(userId);
 
       let recommendations: RecommendationItem[] = [];
 
       try {
-        // 使用 PersonalizedRankerService 獲取推薦
+        // Use PersonalizedRankerService to get recommendations
         const homepageRecommendations = await personalizedRankerService.getHomepageRecommendations(
           userId,
           maxResults
         );
 
-        // 轉換為標準推薦格式
+        // Convert to standard recommendation format
         recommendations = this.convertToRecommendationItems(
           homepageRecommendations.personalized,
           personalizationContext
@@ -115,19 +115,19 @@ export class HomepageRecommendationService {
       } catch (error) {
         console.warn('⚠️ PersonalizedRankerService failed, falling back to RecEngine direct call:', error.message);
         
-        // Fallback: 直接調用RecEngine獲取推薦
+        // Fallback: Call RecEngine directly
         const fallbackRecommendations = await this.getFallbackRecommendations(userId, maxResults, personalizationContext);
         recommendations = fallbackRecommendations;
       }
 
-      // 應用用戶偏好篩選
+      // Apply user preference filters
       const filteredRecommendations = await this.applyUserPreferenceFilters(
         recommendations,
         userId,
         request.filters
       );
 
-      // 建立推薦結果
+      // Build recommendation result
       const result: RecommendationResult = {
         id: this.generateRecommendationId(),
         type: RecommendationType.HOMEPAGE,
@@ -139,7 +139,7 @@ export class HomepageRecommendationService {
           Date.now()
         ),
         createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24小時過期
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // Expires in 24 hours
       };
 
       return result;
@@ -155,7 +155,7 @@ export class HomepageRecommendationService {
   }
 
   /**
-   * 獲取動態首頁內容（基於時間和上下文）
+   * Get dynamic homepage content (based on time and context)
    */
   async getDynamicHomepageContent(
     userId: string,
@@ -173,17 +173,17 @@ export class HomepageRecommendationService {
     try {
       const personalizationContext = await this.buildPersonalizationContext(userId);
       
-      // 生成時間敏感的推薦
+      // Generate time-sensitive recommendations
       const timeBasedRecommendations = await this.generateTimeBasedRecommendations(
         userId,
         timeContext,
         personalizationContext
       );
 
-      // 檢查是否有緊急推薦
+      // Check for urgent recommendations
       const urgentRecommendations = await this.checkUrgentRecommendations(userId);
 
-      // 生成個人化訊息
+      // Generate personalized messages
       const messages = this.generatePersonalizedMessages(
         personalizationContext,
         timeContext
@@ -208,7 +208,7 @@ export class HomepageRecommendationService {
   }
 
   /**
-   * A/B 測試推薦變體
+   * A/B test recommendation variants
    */
   async getRecommendationVariant(
     userId: string,
@@ -224,7 +224,7 @@ export class HomepageRecommendationService {
         }
       };
 
-      // 根據變體調整推薦策略
+      // Adjust recommendation strategy based on variant
       switch (variantId) {
         case 'variant_a_conservative':
           return await this.getConservativeVariant(baseRequest);
@@ -249,11 +249,11 @@ export class HomepageRecommendationService {
   }
 
   // ===========================================
-  // 私有方法
+  // Private methods
   // ===========================================
 
   /**
-   * 建立個人化上下文
+   * Build personalization context
    */
   private async buildPersonalizationContext(userId: string): Promise<PersonalizationContext> {
     const user = await userRepository.findById(userId);
@@ -263,7 +263,7 @@ export class HomepageRecommendationService {
 
     const userCards = await userCardRepository.findUserCardsWithDetails(userId);
     
-    // 分析用戶段落
+    // Analyze user segment
     const userSegment = this.determineUserSegment(user, userCards);
     const lifestagePhase = this.determineLifestagePhase(user);
     const spendingPersona = this.determineSpendingPersona(user);
@@ -280,13 +280,13 @@ export class HomepageRecommendationService {
   }
 
   /**
-   * 生成英雄推薦
+   * Generate hero recommendation
    */
   private async generateHeroRecommendation(
     userId: string,
     context: PersonalizationContext
   ): Promise<HeroRecommendation> {
-    // 獲取最佳推薦
+    // Get the best recommendation
     const homepageRecommendations = await personalizedRankerService.getHomepageRecommendations(
       userId,
       1
@@ -308,7 +308,7 @@ export class HomepageRecommendationService {
   }
 
   /**
-   * 生成特色推薦
+   * Generate featured recommendations
    */
   private async generateFeaturedRecommendations(
     userId: string,
@@ -319,20 +319,20 @@ export class HomepageRecommendationService {
       6
     );
 
-    // 選擇分數最高的3張卡作為特色推薦
+    // Select top 3 highest scoring cards as featured recommendations
     const featured = homepageRecommendations.featured.slice(0, 3);
     
     return featured.map(rec => this.convertToRecommendationItem(rec, context));
   }
 
   /**
-   * 生成趨勢推薦
+   * Generate trending recommendations
    */
   private async generateTrendingRecommendations(
     userId: string,
     context: PersonalizationContext
   ): Promise<RecommendationItem[]> {
-    // 獲取市場趨勢卡片
+    // Get market trending cards
     const trendingCards = await creditCardRepository.findTrendingCards(3);
     
     return trendingCards.map(card => ({
@@ -351,7 +351,7 @@ export class HomepageRecommendationService {
   }
 
   /**
-   * 生成個人化推薦
+   * Generate personalized recommendations
    */
   private async generatePersonalizedRecommendations(
     userId: string,
@@ -362,14 +362,14 @@ export class HomepageRecommendationService {
       9
     );
 
-    // 排除已經在 featured 中的推薦
+    // Exclude recommendations already in featured
     const personalized = homepageRecommendations.personalized.slice(3, 6);
     
     return personalized.map(rec => this.convertToRecommendationItem(rec, context));
   }
 
   /**
-   * 生成分類推薦
+   * Generate category recommendations
    */
   private async generateCategoryRecommendations(
     userId: string,
@@ -406,7 +406,7 @@ export class HomepageRecommendationService {
   }
 
   /**
-   * 轉換推薦格式
+   * Convert recommendation format
    */
   private convertToRecommendationItems(
     personalizedRecs: any[],
@@ -446,7 +446,7 @@ export class HomepageRecommendationService {
   }
 
   /**
-   * 應用用戶偏好篩選
+   * Apply user preference filters
    */
   private async applyUserPreferenceFilters(
     recommendations: RecommendationItem[],
@@ -458,32 +458,32 @@ export class HomepageRecommendationService {
 
     let filtered = [...recommendations];
 
-    // 應用年費篩選
+    // Apply annual fee filter
     if (user.maxAnnualFee) {
       filtered = filtered.filter(rec => {
-        // 這裡需要獲取卡片的年費信息
-        return true; // 簡化實現
+        // Need to get card annual fee information
+        return true; // Simplified implementation
       });
     }
 
-    // 應用信用分數篩選
+    // Apply credit score filter
     if (user.creditScore) {
       filtered = filtered.filter(rec => {
-        // 檢查卡片的信用分數要求
-        return true; // 簡化實現
+        // Check card credit score requirements
+        return true; // Simplified implementation
       });
     }
 
-    // 應用其他篩選器
+    // Apply other filters
     if (filters) {
-      // 實現自定義篩選邏輯
+      // Implement custom filter logic
     }
 
     return filtered;
   }
 
   /**
-   * 建立推薦元數據
+   * Build recommendation metadata
    */
   private buildRecommendationMetadata(
     homepageRecommendations: any,
@@ -509,7 +509,7 @@ export class HomepageRecommendationService {
     };
   }
 
-  // 輔助方法
+  // Helper methods
   private generateRecommendationId(): string {
     return `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -547,8 +547,8 @@ export class HomepageRecommendationService {
   }
 
   private calculateEstimatedBenefit(rec: any, context: PersonalizationContext): number {
-    // 基於用戶消費模式計算預估收益
-    return Math.floor(Math.random() * 500) + 200; // 簡化實現
+    // Calculate estimated benefit based on user spending patterns
+    return Math.floor(Math.random() * 500) + 200; // Simplified implementation
   }
 
   private determinePriority(score: number): 'high' | 'medium' | 'low' {
@@ -584,7 +584,7 @@ export class HomepageRecommendationService {
   }
 
   private selectHeroBackgroundImage(context: PersonalizationContext): string {
-    // 根據上下文選擇背景圖片
+    // Select background image based on context
     return '/images/hero-bg-default.jpg';
   }
 
@@ -616,7 +616,7 @@ export class HomepageRecommendationService {
     return icons[category] || 'credit_card';
   }
 
-  // 降級方法
+  // Degradation methods
   private async getDegradedHomepageLayout(userId: string): Promise<HomepageLayout> {
     return {
       hero: {
@@ -644,9 +644,9 @@ export class HomepageRecommendationService {
     };
   }
 
-  // A/B 測試變體方法
+  // A/B test variant methods
   private async getConservativeVariant(request: RecommendationRequest): Promise<RecommendationResult> {
-    // 保守型推薦邏輯
+    // Conservative recommendation logic
     return await this.getHomepageRecommendations({
       ...request,
       filters: {
@@ -657,7 +657,7 @@ export class HomepageRecommendationService {
   }
 
   private async getAggressiveVariant(request: RecommendationRequest): Promise<RecommendationResult> {
-    // 積極型推薦邏輯
+    // Aggressive recommendation logic
     return await this.getHomepageRecommendations({
       ...request,
       options: {
@@ -669,7 +669,7 @@ export class HomepageRecommendationService {
   }
 
   private async getCategoryFocusedVariant(request: RecommendationRequest): Promise<RecommendationResult> {
-    // 分類聚焦推薦邏輯
+    // Category-focused recommendation logic
     return await this.getHomepageRecommendations(request);
   }
 
@@ -678,17 +678,17 @@ export class HomepageRecommendationService {
     timeContext: any,
     personalizationContext: PersonalizationContext
   ): Promise<RecommendationItem[]> {
-    // 實現時間敏感推薦
+    // Implement time-sensitive recommendations
     return [];
   }
 
   private async checkUrgentRecommendations(userId: string): Promise<RecommendationItem[]> {
-    // 檢查緊急推薦
+    // Check for urgent recommendations
     return [];
   }
 
   /**
-   * Fallback method: 直接調用RecEngine獲取推薦
+   * Fallback method: Call RecEngine directly
    */
   private async getFallbackRecommendations(
     userId: string, 
@@ -698,7 +698,7 @@ export class HomepageRecommendationService {
     try {
       console.log('🔄 Using fallback recommendations via direct RecEngine call');
       
-      // 直接調用RecEngine HTTP API
+      // Call RecEngine HTTP API directly
       const response = await fetch('http://localhost:8080/personalized-ranking', {
         method: 'POST',
         headers: {
@@ -722,7 +722,7 @@ export class HomepageRecommendationService {
 
       const recEngineResponse = await response.json();
 
-      // 轉換RecEngine回應為RecommendationItem
+      // Convert RecEngine response to RecommendationItem
       const recommendations = recEngineResponse.ranked_cards.slice(0, maxResults).map((card: any) => {
         const recEngineCardId = card.card_id;
         const databaseCardId = convertRecEngineIdToUuid(recEngineCardId);
@@ -732,9 +732,9 @@ export class HomepageRecommendationService {
         return {
           cardId: databaseCardId || recEngineCardId,
           cardName: card.card_name,
-          score: card.ranking_score, // 使用RecEngine的原始分數
+          score: card.ranking_score, // Use RecEngine's original score
           reasoning: card.reason || 'Recommended based on market analysis',
-          estimatedBenefit: Math.round(card.ranking_score * 500), // 基於分數計算收益
+          estimatedBenefit: Math.round(card.ranking_score * 500), // Calculate benefit based on score
           confidence: card.ranking_score,
           priority: card.ranking_score > 0.4 ? 'high' : card.ranking_score > 0.25 ? 'medium' : 'low',
           ctaText: 'View Details',
@@ -748,11 +748,11 @@ export class HomepageRecommendationService {
     } catch (fallbackError) {
       console.error('❌ Fallback recommendation also failed:', fallbackError);
       
-      // 最後的fallback：返回hardcoded的高分數推薦
+      // Final fallback: return hardcoded high-score recommendation
       return [{
         cardId: '550e8400-e29b-41d4-a716-446655440001',
         cardName: 'Chase Sapphire Preferred',
-        score: 0.75, // 高分數確保至少3-4顆星
+        score: 0.75, // High score ensures at least 3-4 stars
         reasoning: 'Popular travel rewards card',
         estimatedBenefit: 300,
         confidence: 0.75,
